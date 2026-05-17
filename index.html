@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MerchPro - تطبيق المرشندايز</title>
+
+<!-- SheetJS for Excel parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --purple:   #534AB7;
+  --purple-l: #EEEDFE;
+  --purple-d: #3C3489;
+  --green:    #1D9E75;
+  --green-l:  #EAF3DE;
+  --green-d:  #0F6E56;
+  --amber:    #BA7517;
+  --amber-l:  #FAEEDA;
+  --red:      #A32D2D;
+  --red-l:    #FCEBEB;
+  --blue-l:   #E6F1FB;
+  --blue-d:   #0C447C;
+  --bg:       #F5F5F3;
+  --surface:  #FFFFFF;
+  --border:   rgba(0,0,0,0.1);
+  --txt:      #1a1a1a;
+  --txt2:     #666;
+  --txt3:     #999;
+  --radius:   10px;
+  --radius-sm:6px;
+}
+
+body { font-family: -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; }
+
+.app  { display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.logo  { font-size: 17px; font-weight: 600; color: var(--purple); display: flex; align-items: center; gap: 8px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.sync-badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; }
+.sync-ok  { background: var(--green-l);  color: var(--green-d); }
+.sync-err { background: var(--red-l);    color: var(--red); }
+.sync-cfg { background: var(--amber-l);  color: var(--amber); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--purple-l); color: var(--purple-d); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+
+.nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; }
+.nav-item { padding: 11px 16px; font-size: 13px; color: var(--txt2); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; user-select: none; }
+.nav-item.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+.nav-item:hover:not(.active) { background: var(--bg); color: var(--txt); }
+
+.content { padding: 18px; flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; }
+.hidden { display: none !important; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--txt); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 14px; margin-bottom: 14px; }
+.grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 16px; }
+.metric { background: var(--bg); border-radius: var(--radius-sm); padding: 14px; }
+.metric-label { font-size: 11px; color: var(--txt2); margin-bottom: 4px; }
+.metric-val { font-size: 24px; font-weight: 700; color: var(--txt); }
+.metric-sub { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: right; padding: 9px 10px; font-weight: 600; font-size: 11px; color: var(--txt2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.g { background: var(--green-l); color: #27500A; }
+.a { background: var(--amber-l); color: #633806; }
+.r { background: var(--red-l);   color: var(--red); }
+.p { background: var(--purple-l);color: var(--purple-d); }
+.b { background: var(--blue-l);  color: var(--blue-d); }
+
+.btn { padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--txt); display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: background .15s; }
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--purple); color: #fff; border-color: var(--purple); }
+.btn-primary:hover { background: var(--purple-d); }
+.btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+.btn-green:hover { background: var(--green-d); }
+.btn-red { background: var(--red); color: #fff; border-color: var(--red); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+.form-row { margin-bottom: 12px; }
+.form-label { font-size: 12px; color: var(--txt2); margin-bottom: 4px; display: block; }
+.form-input, .form-select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); color: var(--txt); font-family: inherit; }
+.form-input:focus, .form-select:focus { outline: 2px solid var(--purple); outline-offset: -1px; }
+
+.drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 44px 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop-zone:hover, .drop-zone.over { border-color: var(--purple); background: var(--purple-l); }
+.dz-icon { font-size: 44px; margin-bottom: 10px; }
+.dz-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.dz-sub { font-size: 13px; color: var(--txt2); }
+
+.steps { display: flex; gap: 0; margin-bottom: 18px; }
+.step { flex: 1; text-align: center; padding: 8px 4px; font-size: 12px; color: var(--txt3); border-bottom: 2px solid var(--border); }
+.step.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+.step.done   { color: var(--green);  border-bottom-color: var(--green); }
+
+.sheet-tab { padding: 5px 13px; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; cursor: pointer; background: var(--bg); color: var(--txt2); }
+.sheet-tab.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+
+.preview-wrap { overflow-x: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.preview-wrap table { font-size: 11px; }
+.preview-wrap th, .preview-wrap td { padding: 5px 8px; }
+
+.pbar { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+.pfill { height: 100%; border-radius: 99px; }
+
+.filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.filter-bar .form-input, .filter-bar .form-select { width: auto; flex: 1; min-width: 150px; }
+
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 20px; border-radius: 99px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
+#toast.show { opacity: 1; }
+
+.tag-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.tag-row:last-child { border-bottom: none; }
+
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.storage-bar { background: var(--bg); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px; }
+.storage-bar .pbar { height: 10px; margin-top: 8px; background: var(--border); }
+
+.pagination { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
+.page-btn { padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; background: var(--surface); }
+.page-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.page-btn:hover:not(.active) { background: var(--bg); }
+.page-info { font-size: 12px; color: var(--txt3); }
+
+textarea.form-input { resize: vertical; }
+.prod-line { display:grid; grid-template-columns:1fr 80px 80px auto; gap:6px; align-items:center; }
+.prod-line input, .prod-line select { font-size:12px; padding:6px 8px; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+.modal { background: var(--surface); border-radius: var(--radius); padding: 24px; max-width: 480px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="app">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">📦 MerchPro</div>
+  <div class="topbar-right">
+    <span class="sync-badge sync-cfg" id="sync-badge">📂 لا توجد بيانات</span>
+    <button class="btn btn-sm" id="topbar-sync-btn" onclick="fbPush()" title="رفع للسحابة" style="padding:4px 10px;font-size:12px;display:none">☁️</button>
+    <div class="avatar">أد</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-item active" onclick="switchTab('import',this)">📥 استيراد إكسل</div>
+  <div class="nav-item" onclick="switchTab('home',this)">🏠 الرئيسية</div>
+  <div class="nav-item" onclick="switchTab('visits',this)">📋 الزيارات</div>
+  <div class="nav-item" onclick="switchTab('products',this)">📦 المنتجات</div>
+  <div class="nav-item" onclick="switchTab('stock',this)">🏪 المخزون</div>
+  <div class="nav-item" onclick="switchTab('coordinators',this)">👤 المنسقين</div>
+  <div class="nav-item" onclick="switchTab('config',this)">⚙️ الإعدادات</div>
+</nav>
+
+<!-- ═══════════════ TAB: IMPORT ═══════════════ -->
+<div class="content" id="tab-import">
+  <div class="steps">
+    <div class="step active" id="step1">1. رفع الملف</div>
+    <div class="step"        id="step2">2. ربط الأعمدة</div>
+    <div class="step"        id="step3">3. حفظ البيانات</div>
+  </div>
+
+  <!-- phase 1: upload -->
+  <div id="phase-upload">
+    <div class="drop-zone" id="drop-zone"
+         onclick="document.getElementById('file-input').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="handleDrop(event)">
+      <div class="dz-icon">📊</div>
+      <div class="dz-title">اسحب ملف الإكسل هنا أو اضغط للاختيار</div>
+      <div class="dz-sub">يدعم .xlsx · .xls · .csv</div>
+    </div>
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="loadDemo()">▶ تجربة ببيانات تجريبية</button>
+      <button class="btn btn-green" onclick="downloadTemplate()">⬇ تحميل قالب Excel جاهز</button>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">📋 الأعمدة المتوقعة في ملف الإكسل</div>
+      <div class="tag-row"><strong style="min-width:130px">زيارات</strong><span style="color:var(--txt2)">المنسق · الفرع · Vendor · Product_Name_EN · Column · Mon · Year · Quantity · display status · يوم الزيارة · Account · Date · Alarm</span></div>
+      <div class="tag-row"><strong style="min-width:130px">نقاط البيع</strong><span style="color:var(--txt2)">اسم النقطة · المنطقة · النوع</span></div>
+      <div class="tag-row"><strong style="min-width:130px">منتجات</strong><span style="color:var(--txt2)">Brand · Code · Item</span></div>
+      <div class="tag-row"><strong style="min-width:130px">مخزون</strong><span style="color:var(--txt2)">منتج · كمية · نوع الحركة · تاريخ</span></div>
+    </div>
+  </div>
+
+  <!-- phase 2: map -->
+  <div id="phase-map" class="hidden">
+    <div class="card">
+      <div class="card-title">📄 الأوراق المكتشفة</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="sheet-tabs"></div>
+      <div class="preview-wrap" id="preview-wrap"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔗 ربط الأوراق</div>
+      <div id="col-map-area"></div>
+      <div id="map-warning" style="display:none;margin-top:10px;padding:10px;background:var(--amber-l);border-radius:var(--radius-sm);font-size:12px;color:#633806"></div>
+    </div>
+    <div id="duplicate-warning" style="display:none;margin-bottom:14px;padding:12px;background:var(--amber-l);border-radius:var(--radius);font-size:13px;color:#633806"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" onclick="resetImport()">↩ رجوع</button>
+      <button class="btn btn-green" onclick="doImport()" id="btn-import">✅ تأكيد واستيراد</button>
+    </div>
+  </div>
+
+  <!-- phase 3: done -->
+  <div id="phase-done" class="hidden">
+    <div class="card" style="text-align:center;padding:36px">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:8px">تم الاستيراد بنجاح!</div>
+      <div id="import-summary" style="font-size:13px;color:var(--txt2);margin-bottom:20px"></div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="switchTab('home',document.querySelectorAll('.nav-item')[1])">🏠 عرض الداشبورد</button>
+        <button class="btn" onclick="resetImport()">📥 استيراد ملف آخر</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB: HOME ═══════════════ -->
+<div class="content hidden" id="tab-home">
+  <div class="grid4" id="home-metrics">
+    <div class="metric"><div class="metric-label">جارٍ التحميل...</div><div class="metric-val">—</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">📋 آخر الزيارات</div>
+      <div id="recent-visits"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 أداء النقاط</div>
+      <div id="outlet-perf"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB: VISITS ═══════════════ -->
+<div class="content hidden" id="tab-visits">
+  <div class="filter-bar">
+    <input class="form-input" id="v-search" placeholder="بحث بالمنسق أو الفرع أو Account..." oninput="renderVisits()">
+    <select class="form-select" id="v-vendor" onchange="renderVisits()" style="max-width:140px">
+      <option value="">كل الـ Vendors</option>
+    </select>
+    <select class="form-select" id="v-status" onchange="renderVisits()" style="max-width:140px">
+      <option value="">كل الحالات</option>
+      <option>مكتملة</option><option>جزئية</option><option>ملغاة</option><option>مخططة</option>
+    </select>
+    <input class="form-input" id="v-date-from" type="date" onchange="renderVisits()" style="max-width:155px">
+    <input class="form-input" id="v-date-to"   type="date" onchange="renderVisits()" style="max-width:155px">
+    <button class="btn btn-primary btn-sm" onclick="openVisitForm()">➕ زيارة جديدة</button>
+    <button class="btn btn-sm" onclick="exportVisitsExcel()">⬇ تصدير</button>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th>
+          <th>المنسق</th>
+          <th>الفرع</th>
+          <th>Vendor</th>
+          <th>Product_Name_EN</th>
+          <th>Quantity</th>
+          <th>display status</th>
+          <th>يوم الزيارة</th>
+          <th>Account</th>
+          <th>تاريخ حتى الانتهاء</th>
+          <th>وقت حتى الانتهاء</th>
+          <th>Alarm</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="visits-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px">
+    <div id="visits-count" style="font-size:12px;color:var(--txt3)"></div>
+    <div class="pagination" id="visits-pagination"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB: PRODUCTS ═══════════════ -->
+<div class="content hidden" id="tab-products">
+  <div class="filter-bar">
+    <input class="form-input" id="p-search" placeholder="بحث بـ Brand أو Code أو Item..." oninput="renderProducts()">
+    <select class="form-select" id="p-brand" onchange="renderProducts()" style="max-width:160px">
+      <option value="">كل الـ Brands</option>
+    </select>
+    <button class="btn btn-sm" onclick="exportProductsExcel()">⬇ تصدير</button>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Brand</th><th>Code</th><th>Item</th><th></th></tr></thead>
+        <tbody id="products-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="pagination" id="products-pagination" style="margin-top:10px;justify-content:flex-end"></div>
+</div>
+
+<!-- ═══════════════ TAB: STOCK ═══════════════ -->
+<div class="content hidden" id="tab-stock">
+
+  <!-- row 1: current levels -->
+  <div class="grid2" style="margin-bottom:0">
+    <div class="card">
+      <div class="card-title">📦 الرصيد الحالي</div>
+      <div id="stock-current"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📝 سجل الحركات</span>
+        <button class="btn btn-primary btn-sm" onclick="openMoveForm()">➕ حركة جديدة</button>
+      </div>
+      <div class="filter-bar" style="margin-bottom:8px">
+        <input class="form-input" id="m-search" placeholder="بحث بالمنتج أو الباتش..." oninput="renderStock()" style="min-width:0;flex:1">
+        <select class="form-select" id="m-type" onchange="renderStock()" style="max-width:140px;min-width:0">
+          <option value="">كل الأنواع</option>
+          <option>رصيد حالي</option><option>توزيع</option><option>تعبئة</option><option>مرتجع</option><option>هالك</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>المنتج</th><th>رقم الباتش</th><th>الكمية</th><th>النوع</th><th>التاريخ</th></tr></thead>
+          <tbody id="stock-moves"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="stock-pagination" style="margin-top:10px;justify-content:flex-end"></div>
+    </div>
+  </div>
+
+  <!-- row 2: batch master -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title" style="justify-content:space-between">
+      <span>🏷️ سجل الباتشات</span>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="b-search" placeholder="بحث..." oninput="renderBatches()" style="width:180px;font-size:12px;padding:5px 8px">
+        <button class="btn btn-primary btn-sm" onclick="openBatchForm()">➕ باتش جديد</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>رقم الباتش</th><th>رقم الصنف</th><th>تاريخ التصنيع</th>
+          <th>تاريخ الانتهاء</th><th>أفضل قبل</th><th>كود الحالة</th><th>حالة الباتش</th><th></th>
+        </tr></thead>
+        <tbody id="batches-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="batches-pagination" style="margin-top:10px;justify-content:flex-end"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ TAB: COORDINATORS ═══════════════ -->
+<div class="content hidden" id="tab-coordinators">
+  <div class="filter-bar">
+    <input class="form-input" id="c-search" placeholder="بحث بالاسم أو المنطقة أو الهاتف..." oninput="renderCoordinators()">
+    <select class="form-select" id="c-status" onchange="renderCoordinators()" style="max-width:150px">
+      <option value="">كل الحالات</option>
+      <option>نشط</option>
+      <option>غير نشط</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openCoordForm()">➕ منسق جديد</button>
+    <button class="btn btn-sm" onclick="document.getElementById('coord-import-input').click()">📥 استيراد Excel</button>
+    <button class="btn btn-sm" onclick="downloadCoordTemplate()">⬇ قالب Excel</button>
+    <button class="btn btn-sm" onclick="exportCoordsExcel()">⬆ تصدير</button>
+    <input type="file" id="coord-import-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCoordsFile(this.files[0])">
+  </div>
+
+  <!-- import progress (hidden by default) -->
+  <div id="coord-import-result" class="hidden" style="margin-bottom:14px;padding:12px 16px;background:var(--green-l);border-radius:var(--radius);font-size:13px;color:var(--green-d);display:flex;justify-content:space-between;align-items:center">
+    <span id="coord-import-msg"></span>
+    <button class="btn btn-sm" onclick="document.getElementById('coord-import-result').classList.add('hidden')">✕</button>
+  </div>
+
+  <!-- metrics row -->
+  <div class="grid4" id="coord-metrics" style="margin-bottom:14px"></div>
+
+  <div class="card" style="padding:0">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th>
+          <th>الاسم</th>
+          <th>الكود</th>
+          <th>المنطقة</th>
+          <th>رقم الهاتف</th>
+          <th>Vendor</th>
+          <th>عدد الزيارات</th>
+          <th>الحالة</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="coords-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px">
+    <div id="coords-count" style="font-size:12px;color:var(--txt3)"></div>
+    <div class="pagination" id="coords-pagination"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB: CONFIG ═══════════════ -->
+<div class="content hidden" id="tab-config">
+  <div class="card">
+    <div class="card-title">💾 التخزين المحلي</div>
+    <div class="storage-bar" id="storage-info">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span>المساحة المستخدمة</span>
+        <span id="storage-used">—</span>
+      </div>
+      <div class="pbar"><div class="pfill" id="storage-fill" style="background:var(--purple);width:0%"></div></div>
+    </div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px" id="storage-counts"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗂️ إدارة البيانات</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="exportBackup()">⬇ تصدير نسخة احتياطية (JSON)</button>
+      <button class="btn" onclick="document.getElementById('restore-input').click()">⬆ استعادة من نسخة احتياطية</button>
+      <button class="btn" onclick="exportAllExcel()">📊 تصدير كل البيانات (Excel)</button>
+      <button class="btn btn-red" onclick="confirmClearAll()">🗑️ مسح كل البيانات</button>
+    </div>
+    <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreBackup(this.files[0])">
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔥 Firebase Realtime Database</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <div id="fb-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--txt3);flex-shrink:0"></div>
+      <span id="fb-status-txt" style="font-size:13px;color:var(--txt2)">غير متصل</span>
+      <span style="font-size:11px;color:var(--txt3);margin-right:auto" id="fb-last-sync"></span>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="fbPush()">☁️ رفع البيانات للسحابة</button>
+      <button class="btn" onclick="fbPull()">⬇ جلب البيانات من السحابة</button>
+      <button class="btn btn-green" onclick="fbAutoSync()" id="btn-autosync">🔄 تفعيل المزامنة التلقائية</button>
+    </div>
+    <div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px;color:var(--txt3);font-family:monospace;word-break:break-all" id="fb-url-display"></div>
+  </div>
+</div>
+
+</div><!-- /.app -->
+
+<!-- datalists for autocomplete -->
+<datalist id="dl-outlets"></datalist>
+<datalist id="dl-areas"></datalist>
+
+<!-- Visit Form Modal -->
+<div class="modal-overlay hidden" id="visit-form-overlay" onclick="closeVisitForm()">
+  <div class="modal" style="max-width:620px" onclick="event.stopPropagation()">
+    <div class="modal-title" id="vf-title">➕ تسجيل زيارة جديدة</div>
+
+    <!-- Row 1: المنسق + الفرع -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">المنسق</label>
+        <input class="form-input" id="vf-coordinator" placeholder="مثال: أحمد خضيري" list="dl-coordinators" autocomplete="off">
+        <datalist id="dl-coordinators"></datalist>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">الفرع <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="vf-branch" placeholder="مثال: سبينس مدينة نصر" list="dl-outlets" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Row 2: Vendor + Account -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Vendor</label>
+        <input class="form-input" id="vf-vendor" placeholder="مثال: Spuds" list="dl-vendors" autocomplete="off">
+        <datalist id="dl-vendors"></datalist>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Account</label>
+        <input class="form-input" id="vf-account" placeholder="مثال: سبينس" list="dl-accounts" autocomplete="off">
+        <datalist id="dl-accounts"></datalist>
+      </div>
+    </div>
+
+    <!-- Row 3: Date + يوم الزيارة + الحالة + ملاحظات -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Date <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="vf-date" type="date">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">يوم الزيارة</label>
+        <input class="form-input" id="vf-visit-day" type="number" min="1" max="31" placeholder="22">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">الحالة</label>
+        <select class="form-select" id="vf-status">
+          <option>مكتملة</option>
+          <option>جزئية</option>
+          <option>ملغاة</option>
+          <option>مخططة</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">ملاحظات</label>
+        <input class="form-input" id="vf-notes" placeholder="أي ملاحظات إضافية...">
+      </div>
+    </div>
+
+    <!-- Items Section -->
+    <div style="margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;font-weight:600">📦 الأصناف</span>
+        <button class="btn btn-primary btn-sm" type="button" onclick="addVisitItem()">➕ إضافة صنف</button>
+      </div>
+      <!-- items header -->
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:0;background:var(--bg);border-bottom:1px solid var(--border)">
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">Product_Name_EN</div>
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">Qty</div>
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">display status</div>
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">تاريخ حتى الانتهاء</div>
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">وقت حتى الانتهاء</div>
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">Alarm</div>
+        <div style="padding:6px 10px;width:36px"></div>
+      </div>
+      <div id="vf-items-container"></div>
+      <div id="vf-items-empty" style="padding:20px;text-align:center;color:var(--txt3);font-size:13px">لا توجد أصناف — اضغط ➕ لإضافة صنف</div>
+    </div>
+
+    <!-- hidden fields for backward compat -->
+    <input type="hidden" id="vf-outlet" value="">
+    <input type="hidden" id="vf-area" value="">
+    <input type="hidden" id="vf-units" value="0">
+    <input type="hidden" id="vf-product-name" value="">
+    <input type="hidden" id="vf-display-status" value="">
+    <input type="hidden" id="vf-remaining" value="">
+    <input type="hidden" id="vf-alarm" value="">
+
+    <div id="vf-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-l);border-radius:var(--radius-sm);font-size:12px;color:var(--red)"></div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeVisitForm()">إلغاء</button>
+      <button class="btn btn-green" onclick="saveVisit()">💾 حفظ الزيارة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Form Modal -->
+<div class="modal-overlay hidden" id="batch-form-overlay" onclick="closeBatchForm()">
+  <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+    <div class="modal-title" id="bf-title">➕ إضافة باتش جديد</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">رقم الباتش <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="bf-batch" placeholder="مثال: 10-2022">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">رقم الصنف (Item No)</label>
+        <input class="form-input" id="bf-item" placeholder="مثال: H-ADM001" list="dl-products">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">تاريخ التصنيع</label>
+        <input class="form-input" id="bf-mfg" type="date">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">تاريخ الانتهاء</label>
+        <input class="form-input" id="bf-exp" type="date">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">أفضل قبل (Best Before)</label>
+        <input class="form-input" id="bf-best" type="date">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">تاريخ الرف (Shelf Advice)</label>
+        <input class="form-input" id="bf-shelf" type="date">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">كود حالة الباتش</label>
+        <input class="form-input" id="bf-disp-code" placeholder="مثال: QA-01">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">حالة الباتش</label>
+        <select class="form-select" id="bf-disp-status">
+          <option value="">—</option>
+          <option>مقبول</option><option>مرفوض</option><option>قيد المراجعة</option><option>موقوف</option>
+        </select>
+      </div>
+    </div>
+    <div id="bf-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-l);border-radius:var(--radius-sm);font-size:12px;color:var(--red)"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeBatchForm()">إلغاء</button>
+      <button class="btn btn-green" onclick="saveBatch()">💾 حفظ الباتش</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Move Form Modal -->
+<div class="modal-overlay hidden" id="move-form-overlay" onclick="closeMoveForm()">
+  <div class="modal" style="max-width:460px" onclick="event.stopPropagation()">
+    <div class="modal-title">➕ تسجيل حركة مخزون</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row" style="margin:0;grid-column:1/-1">
+        <label class="form-label">المنتج <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="mf-product" placeholder="اسم المنتج" list="dl-products-move" autocomplete="off">
+        <datalist id="dl-products-move"></datalist>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">رقم الباتش</label>
+        <input class="form-input" id="mf-batch" placeholder="مثال: 10-2022" list="dl-batches-move" autocomplete="off">
+        <datalist id="dl-batches-move"></datalist>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">نوع الحركة <span style="color:var(--red)">*</span></label>
+        <select class="form-select" id="mf-type">
+          <option>رصيد حالي</option><option>توزيع</option><option>تعبئة</option><option>مرتجع</option><option>هالك</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">الكمية <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="mf-qty" type="number" placeholder="مثال: 48 أو -12">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">التاريخ <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="mf-date" type="date">
+      </div>
+    </div>
+    <div id="mf-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-l);border-radius:var(--radius-sm);font-size:12px;color:var(--red)"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeMoveForm()">إلغاء</button>
+      <button class="btn btn-green" onclick="saveMove()">💾 حفظ الحركة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Coordinator Form Modal -->
+<div class="modal-overlay hidden" id="coord-form-overlay" onclick="closeCoordForm()">
+  <div class="modal" style="max-width:500px" onclick="event.stopPropagation()">
+    <div class="modal-title" id="cf-title">➕ إضافة منسق جديد</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">الاسم <span style="color:var(--red)">*</span></label>
+        <input class="form-input" id="cf-name" placeholder="مثال: أحمد خضيري">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">الكود</label>
+        <input class="form-input" id="cf-code" placeholder="مثال: COORD-001">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">المنطقة</label>
+        <input class="form-input" id="cf-area" placeholder="مثال: مدينة نصر">
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">رقم الهاتف</label>
+        <input class="form-input" id="cf-phone" placeholder="مثال: 01012345678" type="tel">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Vendor / Brand</label>
+        <input class="form-input" id="cf-vendor" placeholder="مثال: Spuds" list="dl-coord-vendors" autocomplete="off">
+        <datalist id="dl-coord-vendors"></datalist>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">الحالة</label>
+        <select class="form-select" id="cf-status">
+          <option>نشط</option>
+          <option>غير نشط</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:12px;margin-bottom:0">
+      <label class="form-label">ملاحظات</label>
+      <textarea class="form-input" id="cf-notes" rows="2" placeholder="أي ملاحظات..." style="resize:vertical"></textarea>
+    </div>
+
+    <div id="cf-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-l);border-radius:var(--radius-sm);font-size:12px;color:var(--red)"></div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeCoordForm()">إلغاء</button>
+      <button class="btn btn-green" onclick="saveCoord()">💾 حفظ المنسق</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-title">تأكيد</div>
+    <div id="modal-body" style="font-size:13px;color:var(--txt2)"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-red" id="modal-confirm">تأكيد الحذف</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let DB = { visits: [], products: [], moves: [], coordinators: [] };
+
+const PAGE_SIZE = 20;
+let visitPage   = 1;
+let productPage = 1;
+let stockPage   = 1;
+
+let rawSheets = {};
+
+// ════════════════════════════════════════
+//  INIT — load from localStorage
+// ════════════════════════════════════════
+(function init() {
+  const saved = localStorage.getItem('merchpro_db');
+  if (saved) {
+    try {
+      DB = JSON.parse(saved);
+      if (!DB.coordinators) DB.coordinators = [];
+      setBadge('💾 محفوظ محلياً', 'sync-ok');
+    } catch (e) {
+      setBadge('⚠️ خطأ في البيانات', 'sync-err');
+    }
+  }
+})();
+
+// ════════════════════════════════════════
+//  PERSIST
+// ════════════════════════════════════════
+// ════════════════════════════════════════
+//  FIREBASE CONFIG
+// ════════════════════════════════════════
+const FB_URL = 'https://merchpro-544a5-default-rtdb.europe-west1.firebasedatabase.app/db';
+let _autoSync    = false;
+let _autoSyncInt = null;
+
+function saveLocal() {
+  localStorage.setItem('merchpro_db', JSON.stringify(DB));
+  setBadge('💾 محفوظ محلياً', 'sync-ok');
+  if (_autoSync) fbPush(true);          // silent auto-push
+}
+
+function getStorageKB() {
+  const raw = localStorage.getItem('merchpro_db') || '';
+  return (raw.length * 2 / 1024).toFixed(1);
+}
+
+// ════════════════════════════════════════
+//  FIREBASE HELPERS
+// ════════════════════════════════════════
+function fbSetStatus(state) {
+  const dot = document.getElementById('fb-status-dot');
+  const txt = document.getElementById('fb-status-txt');
+  const urlEl = document.getElementById('fb-url-display');
+  if (!dot) return;
+  if (urlEl) urlEl.textContent = FB_URL + '.json';
+  const map = {
+    ok:      { color:'var(--green)',  label:'متصل — Firebase نشط' },
+    syncing: { color:'var(--amber)',  label:'جارٍ المزامنة...' },
+    err:     { color:'var(--red)',    label:'خطأ في الاتصال بـ Firebase' },
+    off:     { color:'var(--txt3)',   label:'غير متصل' },
+  };
+  const s = map[state] || map.off;
+  dot.style.background = s.color;
+  if (txt) txt.textContent = s.label;
+}
+
+function fbSetLastSync() {
+  const el = document.getElementById('fb-last-sync');
+  if (el) el.textContent = 'آخر مزامنة: ' + new Date().toLocaleTimeString('ar-EG');
+}
+
+async function fbPush(silent = false) {
+  fbSetStatus('syncing');
+  if (!silent) setBadge('☁️ جارٍ الرفع...', 'sync-cfg');
+  try {
+    const res = await fetch(FB_URL + '.json', {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(DB)
+    });
+    if (!res.ok) throw new Error(res.status);
+    fbSetStatus('ok');
+    fbSetLastSync();
+    setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+    document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
+    if (!silent) toast('✅ تم رفع البيانات لـ Firebase');
+  } catch (err) {
+    fbSetStatus('err');
+    setBadge('⚠️ فشل رفع Firebase', 'sync-err');
+    if (!silent) toast('❌ فشل الاتصال بـ Firebase');
+  }
+}
+
+async function fbPull() {
+  fbSetStatus('syncing');
+  setBadge('☁️ جارٍ الجلب...', 'sync-cfg');
+  try {
+    const res  = await fetch(FB_URL + '.json');
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    if (!data) { toast('⚠️ لا توجد بيانات في Firebase بعد'); fbSetStatus('ok'); return; }
+    DB = data;
+    if (!DB.coordinators) DB.coordinators = [];
+    localStorage.setItem('merchpro_db', JSON.stringify(DB));
+    fbSetStatus('ok');
+    fbSetLastSync();
+    setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+    document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
+    toast('✅ تم جلب البيانات من Firebase');
+    // refresh current view
+    buildHome();
+    renderVisits();
+    renderProducts();
+    renderCoordinators();
+    buildConfig();
+  } catch (err) {
+    fbSetStatus('err');
+    setBadge('⚠️ فشل جلب Firebase', 'sync-err');
+    toast('❌ فشل الاتصال بـ Firebase');
+  }
+}
+
+function fbAutoSync() {
+  _autoSync = !_autoSync;
+  const btn = document.getElementById('btn-autosync');
+  if (_autoSync) {
+    btn.textContent = '⏸ إيقاف المزامنة التلقائية';
+    btn.classList.add('btn-primary');
+    btn.classList.remove('btn-green');
+    // push immediately then every 2 min
+    fbPush(false);
+    _autoSyncInt = setInterval(() => fbPush(true), 120000);
+    toast('🔄 المزامنة التلقائية شغالة (كل 2 دقيقة)');
+  } else {
+    btn.textContent = '🔄 تفعيل المزامنة التلقائية';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-green');
+    clearInterval(_autoSyncInt);
+    toast('⏸ تم إيقاف المزامنة التلقائية');
+  }
+}
+
+// check Firebase on load
+(async function fbInit() {
+  fbSetStatus('syncing');
+  const urlEl = document.getElementById('fb-url-display');
+  if (urlEl) urlEl.textContent = FB_URL + '.json';
+  try {
+    const res = await fetch(FB_URL + '.json');
+    if (res.ok) {
+      fbSetStatus('ok');
+      document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
+      setBadge('☁️ Firebase متصل', 'sync-ok');
+    } else throw new Error();
+  } catch {
+    fbSetStatus('off');
+  }
+})();
+
+// ════════════════════════════════════════
+//  NAV
+// ════════════════════════════════════════
+function switchTab(name, el) {
+  document.querySelectorAll('[id^="tab-"]').forEach(c => c.classList.add('hidden'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (name === 'home')     buildHome();
+  if (name === 'visits')   { visitPage = 1;   renderVisits(); }
+  if (name === 'products') { productPage = 1; renderProducts(); }
+  if (name === 'stock')    { stockPage = 1;   renderStock(); }
+  if (name === 'coordinators') { coordPage = 1; renderCoordinators(); }
+  if (name === 'config')   buildConfig();
+}
+
+// ════════════════════════════════════════
+//  EXCEL IMPORT
+// ════════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  toast('جارٍ قراءة الملف...');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      rawSheets = {};
+      wb.SheetNames.forEach(n => {
+        rawSheets[n] = XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: '' });
+      });
+      showMapPhase();
+    } catch (err) {
+      toast('❌ فشل قراءة الملف — تأكد أنه ملف إكسل صحيح');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadTemplate() {
+  const visitsData = [
+    { '#':1, 'المنسق':'أحمد خضيري',  'الفرع':'سبينس مدينة نصر',                   'Vendor':'Spuds', 'Product_Name_EN':'سبدز-حصوص الليمون 8 كيس 82-72',      'Column':14, 'Mon':11, 'Year':2025, 'Quantity':4,  'display status':'الرف', 'يوم الزيارة':22, 'Account':'سبينس',                 'تاريخ حتى الانتهاء':'2/28/2026', 'وقت حتى الانتهاء':-184, 'Alarm':'near Expiry' },
+    { '#':2, 'المنسق':'مروان محسن',   'الفرع':'سبينس انبوكس',                      'Vendor':'Spuds', 'Product_Name_EN':'سبدز كرافت كوكد تشيز توست 110-100',  'Column':17, 'Mon':11, 'Year':2025, 'Quantity':12, 'display status':'الرف', 'يوم الزيارة':27, 'Account':'سبينس',                 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-181, 'Alarm':'near Expiry' },
+    { '#':3, 'المنسق':'هبة رمضان',    'الفرع':'اسواق عبدالله العثيم _ العشرين',    'Vendor':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',       'Column':19, 'Mon':11, 'Year':2025, 'Quantity':9,  'display status':'الرف', 'يوم الزيارة':22, 'Account':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
+    { '#':4, 'المنسق':'هبة رمضان',    'الفرع':'اسواق عبدالله العثيم _ ميدان الساعه','Vendor':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',      'Column':19, 'Mon':11, 'Year':2025, 'Quantity':5,  'display status':'الرف', 'يوم الزيارة':22, 'Account':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
+    { '#':5, 'المنسق':'أحمد دردير',   'الفرع':'اسواق عبدالله العثيم _الحلمية',     'Vendor':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',       'Column':19, 'Mon':11, 'Year':2025, 'Quantity':6,  'display status':'الرف', 'يوم الزيارة':21, 'Account':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
+    { '#':6, 'المنسق':'مروان محسن',   'الفرع':'سبينس انبوكس',                      'Vendor':'Spuds', 'Product_Name_EN':'سبدز-تشيز توست 20 كيس 82-72',        'Column':25, 'Mon':11, 'Year':2025, 'Quantity':23, 'display status':'الرف', 'يوم الزيارة':27, 'Account':'سبينس',                 'تاريخ حتى الانتهاء':'4/1/2026',  'وقت حتى الانتهاء':-173, 'Alarm':'near Expiry' },
+  ];
+
+  const itemsData = [
+    { 'Brand':'Spuds', 'Code':'BONZ001', 'Item':'بونز - جبنة جليزد - مقرمشات' },
+    { 'Brand':'Spuds', 'Code':'BONZ002', 'Item':'بونز - خل و ليمون لاسع - مقرمشات' },
+    { 'Brand':'Spuds', 'Code':'BONZ003', 'Item':'بونز - فلفل حلو مشطشط - مقرمشات' },
+    { 'Brand':'Spuds', 'Code':'BONZ004', 'Item':'بونز - طماطم متبله - مقرمشات' },
+    { 'Brand':'Spuds', 'Code':'BONZ005', 'Item':'بونز - ليمون مولع - مقرمشات' },
+    { 'Brand':'Spuds', 'Code':'BONZ006', 'Item':'بونز - جبنة مشطشطة - مقرمشات' },
+  ];
+
+  const wb = XLSX.utils.book_new();
+
+  const wsVisits = XLSX.utils.json_to_sheet(visitsData);
+  // style header row width
+  wsVisits['!cols'] = [
+    {wch:4},{wch:14},{wch:30},{wch:8},{wch:40},
+    {wch:8},{wch:6},{wch:6},{wch:10},{wch:14},{wch:12},{wch:22},{wch:18},{wch:16},{wch:14}
+  ];
+  XLSX.utils.book_append_sheet(wb, wsVisits, 'زيارات');
+
+  const wsItems = XLSX.utils.json_to_sheet(itemsData);
+  wsItems['!cols'] = [{wch:12},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsItems, 'منتجات');
+
+  XLSX.writeFile(wb, 'MerchPro_Template.xlsx');
+  toast('✅ تم تحميل القالب');
+}
+
+function loadDemo() {
+  rawSheets = {
+    'زيارات': [
+      { تاريخ:'2025-05-15', 'نقطة البيع':'سوبرماركت النور',   منطقة:'مدينة نصر',   الوحدات:104, الحالة:'مكتملة' },
+      { تاريخ:'2025-05-15', 'نقطة البيع':'فالبر ستار',        منطقة:'المعادي',      الوحدات:88,  الحالة:'جزئية' },
+      { تاريخ:'2025-05-14', 'نقطة البيع':'الفتح للجملة',      منطقة:'العتبة',       الوحدات:220, الحالة:'مكتملة' },
+      { تاريخ:'2025-05-14', 'نقطة البيع':'ماركور الرحاب',     منطقة:'الرحاب',      الوحدات:66,  الحالة:'جزئية' },
+      { تاريخ:'2025-05-13', 'نقطة البيع':'سوبر الزهور',       منطقة:'الزيتون',     الوحدات:0,   الحالة:'ملغاة' },
+      { تاريخ:'2025-05-13', 'نقطة البيع':'سبينس',             منطقة:'مصر الجديدة', الوحدات:145, الحالة:'مكتملة' },
+      { تاريخ:'2025-05-12', 'نقطة البيع':'أولستيب',           منطقة:'الوزة',        الوحدات:80,  الحالة:'مكتملة' },
+      { تاريخ:'2025-05-12', 'نقطة البيع':'سوبرماركت النور',   منطقة:'مدينة نصر',   الوحدات:98,  الحالة:'مكتملة' },
+      { تاريخ:'2025-05-11', 'نقطة البيع':'فالبر ستار',        منطقة:'المعادي',      الوحدات:112, الحالة:'مكتملة' },
+      { تاريخ:'2025-05-10', 'نقطة البيع':'الفتح للجملة',      منطقة:'العتبة',       الوحدات:195, الحالة:'مكتملة' },
+    ],
+    'منتجات': [
+      { Brand:'Spuds', Code:'BONZ001', Item:'بونز - جبنة جليزد - مقرمشات' },
+      { Brand:'Spuds', Code:'BONZ002', Item:'بونز - خل و ليمون لاسع - مقرمشات' },
+      { Brand:'Spuds', Code:'BONZ003', Item:'بونز - فلفل حلو مشطشط - مقرمشات' },
+      { Brand:'Spuds', Code:'BONZ004', Item:'بونز - طماطم متبله - مقرمشات' },
+      { Brand:'Spuds', Code:'BONZ005', Item:'بونز - ليمون مولع - مقرمشات' },
+      { Brand:'Spuds', Code:'BONZ006', Item:'بونز - جبنة مشطشطة - مقرمشات' },
+    ],
+    'مخزون': [
+      { منتج:'عصير أورانج 1L',    كمية:42,  'نوع الحركة':'رصيد حالي',  تاريخ:'2025-05-15' },
+      { منتج:'مياه معدنية 500ml', كمية:96,  'نوع الحركة':'رصيد حالي',  تاريخ:'2025-05-15' },
+      { منتج:'لبن كامل الدسم 1L', كمية:18,  'نوع الحركة':'رصيد حالي',  تاريخ:'2025-05-15' },
+      { منتج:'زيت ذرة 1L',        كمية:4,   'نوع الحركة':'رصيد حالي',  تاريخ:'2025-05-15' },
+      { منتج:'عصير أورانج 1L',    كمية:-24, 'نوع الحركة':'توزيع',       تاريخ:'2025-05-14' },
+      { منتج:'مياه معدنية 500ml', كمية:-48, 'نوع الحركة':'توزيع',       تاريخ:'2025-05-14' },
+      { منتج:'لبن كامل الدسم 1L', كمية:60,  'نوع الحركة':'تعبئة',       تاريخ:'2025-05-13' },
+    ]
+  };
+  showMapPhase();
+}
+
+function showMapPhase() {
+  document.getElementById('phase-upload').classList.add('hidden');
+  document.getElementById('phase-map').classList.remove('hidden');
+  goStep(2);
+  const names = Object.keys(rawSheets);
+  const tabsEl = document.getElementById('sheet-tabs');
+  tabsEl.innerHTML = '';
+  names.forEach((n, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'sheet-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = n;
+    btn.onclick = () => {
+      document.querySelectorAll('.sheet-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderPreview(n);
+    };
+    tabsEl.appendChild(btn);
+  });
+  renderPreview(names[0]);
+  renderColMap(names);
+  checkDuplicates();
+}
+
+function renderPreview(sheetName) {
+  const rows = rawSheets[sheetName] || [];
+  if (!rows.length) {
+    document.getElementById('preview-wrap').innerHTML = '<p style="padding:12px;font-size:12px;color:var(--txt2)">لا توجد بيانات</p>';
+    return;
+  }
+  const cols = Object.keys(rows[0]);
+  let h = '<table><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+  rows.slice(0, 8).forEach(r => {
+    h += '<tr>' + cols.map(c => `<td title="${r[c]}">${String(r[c]).substring(0, 25)}</td>`).join('') + '</tr>';
+  });
+  if (rows.length > 8) h += `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--txt3)">... و ${rows.length - 8} صف آخر</td></tr>`;
+  h += '</tbody></table>';
+  document.getElementById('preview-wrap').innerHTML = h;
+}
+
+function renderColMap(names) {
+  const fields = [
+    { label: 'ورقة الزيارات',  key: 'visits',   hints: ['زيار'] },
+    { label: 'ورقة المنتجات',  key: 'products', hints: ['منتج', 'product'] },
+    { label: 'ورقة المخزون',   key: 'stock',    hints: ['مخزون', 'stock', 'حرك'] },
+  ];
+  let h = '';
+  fields.forEach(f => {
+    const auto = names.find(n => f.hints.some(hint => n.toLowerCase().includes(hint))) || '';
+    h += `<div class="tag-row">
+      <strong style="min-width:140px">${f.label}</strong>
+      <select class="form-select" id="map-${f.key}" style="max-width:220px" onchange="checkDuplicates()">
+        <option value="">-- اختر الورقة --</option>
+        ${names.map(n => `<option value="${n}"${n === auto ? ' selected' : ''}>${n}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+  document.getElementById('col-map-area').innerHTML = h;
+}
+
+function checkDuplicates() {
+  const vS = document.getElementById('map-visits')?.value;
+  if (!vS || !rawSheets[vS]) {
+    document.getElementById('duplicate-warning').style.display = 'none';
+    return;
+  }
+  const incoming = rawSheets[vS].map(parseVisit);
+  const existingKeys = new Set(DB.visits.map(v => `${v.outlet}|${v.date}`));
+  const dups = incoming.filter(v => existingKeys.has(`${v.outlet}|${v.date}`)).length;
+  const warn = document.getElementById('duplicate-warning');
+  if (dups > 0) {
+    warn.style.display = 'block';
+    warn.innerHTML = `⚠️ يوجد <strong>${dups}</strong> زيارة موجودة مسبقاً — سيتم تخطيها تلقائياً وإضافة الجديدة فقط.`;
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+async function doImport() {
+  const vS = document.getElementById('map-visits').value;
+  const pS = document.getElementById('map-products').value;
+  const sS = document.getElementById('map-stock').value;
+
+  if (!vS && !pS && !sS) {
+    document.getElementById('map-warning').style.display = 'block';
+    document.getElementById('map-warning').textContent = '⚠️ اختر ورقة واحدة على الأقل قبل الاستيراد';
+    return;
+  }
+  document.getElementById('map-warning').style.display = 'none';
+
+  const btn = document.getElementById('btn-import');
+  btn.innerHTML = '<span class="spinner"></span> جارٍ الحفظ...';
+  btn.disabled = true;
+
+  let addedVisits = 0, addedProducts = 0, addedMoves = 0;
+
+  if (vS && rawSheets[vS]) {
+    const incoming = rawSheets[vS].map(parseVisit);
+    const existingKeys = new Set(DB.visits.map(v => `${v.outlet}|${v.date}`));
+    const fresh = incoming.filter(v => !existingKeys.has(`${v.outlet}|${v.date}`));
+    DB.visits = [...DB.visits, ...fresh];
+    addedVisits = fresh.length;
+  }
+
+  if (pS && rawSheets[pS]) {
+    const incoming = rawSheets[pS].map(parseProd);
+    const existingCodes = new Set(DB.products.map(p => p.code));
+    // update existing, add new
+    incoming.forEach(p => {
+      const idx = DB.products.findIndex(ep => ep.code === p.code);
+      if (idx > -1) { DB.products[idx] = p; }
+      else { DB.products.push(p); addedProducts++; }
+    });
+  }
+
+  if (sS && rawSheets[sS]) {
+    const incoming = rawSheets[sS].map(parseMove);
+    const existingKeys = new Set(DB.moves.map(m => `${m.product}|${m.date}|${m.type}|${m.qty}`));
+    const fresh = incoming.filter(m => !existingKeys.has(`${m.product}|${m.date}|${m.type}|${m.qty}`));
+    DB.moves = [...DB.moves, ...fresh];
+    addedMoves = fresh.length;
+  }
+
+  saveLocal();
+
+  btn.innerHTML = '✅ تأكيد واستيراد';
+  btn.disabled = false;
+
+  document.getElementById('phase-map').classList.add('hidden');
+  document.getElementById('phase-done').classList.remove('hidden');
+  goStep(3);
+  document.getElementById('import-summary').innerHTML =
+    `تم إضافة: <strong>${addedVisits}</strong> زيارة · <strong>${addedProducts}</strong> منتج جديد · <strong>${addedMoves}</strong> حركة مخزون`;
+}
+
+function parseVisit(r) {
+  // build date from Date column OR from Column(day)+Mon+Year
+  let date = String(r['Date'] || r['تاريخ'] || r['date'] || '');
+  if (!date) {
+    const day = parseInt(r['Column'] || r['Day'] || r['يوم'] || 0);
+    const mon = parseInt(r['Mon']    || r['Month'] || r['شهر'] || 0);
+    const yr  = parseInt(r['Year']   || r['السنة'] || 0);
+    if (day && mon && yr) {
+      date = `${yr}-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+  }
+  // parse Excel serial date number (e.g. 45975)
+  if (/^\d{5}$/.test(date)) {
+    const d = new Date(Math.round((parseInt(date) - 25569) * 86400 * 1000));
+    date = d.toISOString().slice(0, 10);
+  }
+  return {
+    coordinator:   r['المنسق']          || r['coordinator']  || '',
+    branch:        r['الفرع']           || r['branch']       || '',
+    vendor:        r['Vendor']          || r['vendor']       || '',
+    productNameEN: r['Product_Name_EN'] || r['product_name_en'] || r['اسم المنتج'] || '',
+    outlet:        r['الفرع']           || r['نقطة البيع']   || r['outlet'] || '',
+    area:          r['Account']         || r['منطقة']        || r['area']   || '',
+    date,
+    units:         parseInt(r['Quantity']    || r['الوحدات'] || r['units'] || 0) || 0,
+    displayStatus: r['display status']  || r['display_status'] || r['الرف'] || '',
+    visitDay:      parseInt(r['يوم الزيارة'] || r['visit_day'] || 0) || 0,
+    account:       r['Account']         || r['account']      || '',
+    expiryDate:    String(r['تاريخ حتى الانتهاء'] || r['Expiry Date'] || r['expiry_date'] || ''),
+    remaining:     parseInt(r['وقت حتى الانتهاء'] || r['Ren'] || r['Remaining'] || r['remaining'] || 0) || 0,
+    alarm:         r['Alarm']           || r['alarm']        || '',
+    status:        r['الحالة']          || r['status']       || 'مكتملة',
+    notes:         r['ملاحظات']         || r['notes']        || ''
+  };
+}
+
+function parseProd(r) {
+  return {
+    brand:  r['Brand']  || r['brand']  || r['Vendor'] || r['vendor'] || '',
+    code:   r['Code']   || r['code']   || r['كود']    || '',
+    name:   r['Item']   || r['item']   || r['اسم']    || r['name']   || Object.values(r)[2] || '',
+    cat:    r['فئة']    || r['category'] || '',
+    price:  parseFloat(r['سعر'] || r['price'] || 0) || 0,
+    min:    parseInt(r['الحد الأدنى'] || r['min'] || 0) || 0,
+    status: r['حالة']   || r['status'] || 'نشط'
+  };
+}
+
+function parseMove(r) {
+  return {
+    product: r['منتج']          || r['product'] || '',
+    qty:     parseInt(r['كمية'] || r['qty']    || 0) || 0,
+    type:    r['نوع الحركة']    || r['type']    || '',
+    date:    String(r['تاريخ']  || r['date']   || '')
+  };
+}
+
+function resetImport() {
+  document.getElementById('phase-upload').classList.remove('hidden');
+  document.getElementById('phase-map').classList.add('hidden');
+  document.getElementById('phase-done').classList.add('hidden');
+  document.getElementById('file-input').value = '';
+  rawSheets = {};
+  goStep(1);
+}
+
+function goStep(n) {
+  [1, 2, 3].forEach(i => {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active', 'done');
+    if (i < n)      el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+
+// ════════════════════════════════════════
+//  BUILD VIEWS
+// ════════════════════════════════════════
+function badgeHtml(s) {
+  const m = { 'مكتملة':'g','جزئية':'a','ملغاة':'r','مخططة':'p','نشط':'g','محدود':'a','نفذ':'r' };
+  return `<span class="badge ${m[s] || 'b'}">${s}</span>`;
+}
+
+function buildHome() {
+  const total  = DB.visits.length;
+  const done   = DB.visits.filter(v => v.status === 'مكتملة').length;
+  const units  = DB.visits.reduce((a, v) => a + (parseInt(v.units) || 0), 0);
+  const outlets = [...new Set(DB.visits.map(v => v.outlet))].length;
+  document.getElementById('home-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">إجمالي الزيارات</div><div class="metric-val">${total}</div></div>
+    <div class="metric"><div class="metric-label">مكتملة</div><div class="metric-val">${done}</div><div class="metric-sub">${total ? Math.round(done / total * 100) : 0}%</div></div>
+    <div class="metric"><div class="metric-label">إجمالي الوحدات</div><div class="metric-val">${units.toLocaleString('ar-EG')}</div></div>
+    <div class="metric"><div class="metric-label">نقاط مغطاة</div><div class="metric-val">${outlets}</div></div>`;
+
+  const recent = [...DB.visits].reverse().slice(0, 6);
+  document.getElementById('recent-visits').innerHTML = recent.length
+    ? recent.map(v => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:13px;font-weight:600">${v.outlet}</div>
+          <div style="font-size:11px;color:var(--txt2)">${v.date} · ${v.area}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:var(--txt2)">${parseInt(v.units) || 0} وحدة</span>
+          ${badgeHtml(v.status)}
+        </div>
+      </div>`).join('')
+    : '<p style="color:var(--txt3);font-size:13px">لا توجد بيانات — استورد ملف إكسل أو سجّل زيارة يدوياً من تاب الزيارات</p>';
+
+  const outMap = {};
+  DB.visits.forEach(v => { outMap[v.outlet] = (outMap[v.outlet] || 0) + (parseInt(v.units) || 0); });
+  const sorted = Object.entries(outMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const mx = sorted[0]?.[1] || 1;
+  document.getElementById('outlet-perf').innerHTML = sorted.length
+    ? sorted.map(([n, u]) => `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="font-weight:600">${n}</span>
+          <span style="color:var(--txt2)">${u.toLocaleString('ar-EG')} وحدة</span>
+        </div>
+        <div class="pbar"><div class="pfill" style="width:${Math.round(u / mx * 100)}%;background:var(--purple)"></div></div>
+      </div>`).join('')
+    : '<p style="color:var(--txt3);font-size:13px">لا توجد بيانات</p>';
+}
+
+// ── Visits ──
+let filteredVisits = [];
+
+function renderVisits() {
+  const q      = (document.getElementById('v-search')?.value || '').toLowerCase();
+  const vnd    = document.getElementById('v-vendor')?.value || '';
+  const st     = document.getElementById('v-status')?.value || '';
+  const from   = document.getElementById('v-date-from')?.value || '';
+  const to     = document.getElementById('v-date-to')?.value || '';
+
+  filteredVisits = [...DB.visits].reverse().filter(v =>
+    (!q   || (v.coordinator||'').toLowerCase().includes(q) || (v.branch||'').toLowerCase().includes(q) ||
+              (v.account||'').toLowerCase().includes(q) || (v.productNameEN||'').toLowerCase().includes(q) ||
+              (v.outlet||'').toLowerCase().includes(q)) &&
+    (!vnd  || v.vendor === vnd) &&
+    (!st   || v.status === st) &&
+    (!from || v.date >= from) &&
+    (!to   || v.date <= to)
+  );
+
+  // refresh vendor dropdown
+  const vndSel = document.getElementById('v-vendor');
+  if (vndSel) {
+    const curVnd = vndSel.value;
+    const vendors = [...new Set(DB.visits.map(v => v.vendor).filter(Boolean))].sort();
+    vndSel.innerHTML = '<option value="">كل الـ Vendors</option>' + vendors.map(v => `<option${v === curVnd ? ' selected' : ''}>${v}</option>`).join('');
+  }
+
+  const total   = filteredVisits.length;
+  const pages   = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  visitPage     = Math.min(visitPage, pages);
+  const slice   = filteredVisits.slice((visitPage - 1) * PAGE_SIZE, visitPage * PAGE_SIZE);
+  const startIdx = (visitPage - 1) * PAGE_SIZE;
+
+  const alarmBadge = a => {
+    if (!a) return '—';
+    const c = a.toLowerCase().includes('expir') ? 'r' : a.toLowerCase().includes('near') ? 'a' : 'b';
+    return `<span class="badge ${c}">${a}</span>`;
+  };
+
+  document.getElementById('visits-tbody').innerHTML = slice.length
+    ? slice.map((v, i) => {
+        const dbIdx = DB.visits.indexOf(v);
+        const rem = parseInt(v.remaining) || 0;
+        const remColor = rem < 0 ? 'var(--red)' : rem < 30 ? 'var(--amber)' : 'var(--green)';
+        return `<tr>
+          <td style="color:var(--txt3);font-size:11px">${startIdx + i + 1}</td>
+          <td title="${v.coordinator||''}">${v.coordinator||'—'}</td>
+          <td title="${v.branch||''}" style="max-width:160px">${v.branch||'—'}</td>
+          <td><span class="badge p">${v.vendor||'—'}</span></td>
+          <td title="${v.productNameEN||''}" style="max-width:180px">${v.productNameEN||'—'}</td>
+          <td style="font-weight:600">${parseInt(v.units)||0}</td>
+          <td>${v.displayStatus||'—'}</td>
+          <td style="text-align:center">${v.visitDay||'—'}</td>
+          <td title="${v.account||''}">${v.account||'—'}</td>
+          <td style="white-space:nowrap;color:var(--txt2)">${v.expiryDate||'—'}</td>
+          <td style="color:${remColor};font-weight:600">${rem !== 0 ? rem : '—'}</td>
+          <td>${alarmBadge(v.alarm)}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm" onclick="openVisitForm(${dbIdx})" title="تعديل">✏️</button>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l)" onclick="deleteVisit(${dbIdx})" title="حذف">🗑</button>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="13" style="text-align:center;color:var(--txt3);padding:20px">لا توجد بيانات — اضغط ➕ زيارة جديدة للتسجيل</td></tr>';
+
+  document.getElementById('visits-count').textContent = `عرض ${slice.length} من ${total} زيارة`;
+  renderPagination('visits-pagination', pages, visitPage, p => { visitPage = p; renderVisits(); });
+}
+
+function deleteVisit(idx) {
+  showModal('حذف زيارة', `هل تريد حذف زيارة "${DB.visits[idx]?.outlet}"؟`, () => {
+    DB.visits.splice(idx, 1);
+    saveLocal();
+    renderVisits();
+    buildHome();
+    toast('تم الحذف');
+  });
+}
+
+// ── Products ──
+let filteredProducts = [];
+
+function renderProducts() {
+  const q     = (document.getElementById('p-search')?.value || '').toLowerCase();
+  const brand = document.getElementById('p-brand')?.value || '';
+
+  filteredProducts = DB.products.filter(p =>
+    (!q     || (p.name||'').toLowerCase().includes(q) || (p.code||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q)) &&
+    (!brand || p.brand === brand)
+  );
+
+  const pages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  productPage = Math.min(productPage, pages);
+  const slice = filteredProducts.slice((productPage - 1) * PAGE_SIZE, productPage * PAGE_SIZE);
+  const startIdx = (productPage - 1) * PAGE_SIZE;
+
+  document.getElementById('products-tbody').innerHTML = slice.length
+    ? slice.map((p, i) => {
+        const dbIdx = DB.products.indexOf(p);
+        return `<tr>
+          <td style="color:var(--txt3);font-size:11px">${startIdx + i + 1}</td>
+          <td><span class="badge p">${p.brand || '—'}</span></td>
+          <td style="font-family:monospace;font-size:12px;font-weight:600;color:var(--blue-d)">${p.code || '—'}</td>
+          <td title="${p.name||''}">${p.name || '—'}</td>
+          <td><button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l)" onclick="deleteProduct(${dbIdx})">🗑</button></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:20px">لا توجد بيانات — استورد ملف الأصناف</td></tr>';
+
+  // refresh brand dropdown
+  const sel = document.getElementById('p-brand');
+  const curVal = sel.value;
+  const brands = [...new Set(DB.products.map(p => p.brand).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">كل الـ Brands</option>' + brands.map(b => `<option${b === curVal ? ' selected' : ''}>${b}</option>`).join('');
+
+  const count = document.querySelector('#tab-products .pagination') || document.getElementById('products-pagination');
+  renderPagination('products-pagination', pages, productPage, p => { productPage = p; renderProducts(); });
+}
+
+function deleteProduct(idx) {
+  showModal('حذف منتج', `هل تريد حذف "${DB.products[idx]?.name}"؟`, () => {
+    DB.products.splice(idx, 1);
+    saveLocal();
+    renderProducts();
+    toast('تم الحذف');
+  });
+}
+
+// ── Stock ──
+function renderStock() {
+  const curr = DB.moves.filter(m => String(m.type || '').includes('حالي'));
+  const mx   = Math.max(...curr.map(m => parseInt(m.qty) || 0), 1);
+
+  document.getElementById('stock-current').innerHTML = curr.length
+    ? curr.map(m => {
+        const q   = parseInt(m.qty) || 0;
+        const pct = Math.round(q / mx * 100);
+        const c   = pct > 60 ? 'var(--green)' : pct > 30 ? 'var(--amber)' : 'var(--red)';
+        return `<div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span style="font-weight:600">${m.product}</span>
+            <span style="color:${c};font-weight:600">${q} وحدة</span>
+          </div>
+          <div class="pbar"><div class="pfill" style="width:${pct}%;background:${c}"></div></div>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--txt3);font-size:13px">لا توجد بيانات مخزون</p>';
+
+  const pages  = Math.max(1, Math.ceil(DB.moves.length / PAGE_SIZE));
+  stockPage    = Math.min(stockPage, pages);
+  const slice  = DB.moves.slice((stockPage - 1) * PAGE_SIZE, stockPage * PAGE_SIZE);
+
+  document.getElementById('stock-moves').innerHTML = slice.length
+    ? slice.map(m => {
+        const q = parseInt(m.qty) || 0;
+        return `<tr>
+          <td title="${m.product}">${m.product}</td>
+          <td><span class="badge ${q < 0 ? 'r' : q > 0 ? 'g' : 'b'}">${q > 0 ? '+' : ''}${q}</span></td>
+          <td>${m.type}</td>
+          <td>${m.date}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px">لا توجد بيانات</td></tr>';
+
+  renderPagination('stock-pagination', pages, stockPage, p => { stockPage = p; renderStock(); });
+}
+
+// ── Config ──
+function buildConfig() {
+  const kb   = getStorageKB();
+  const pct  = Math.min(100, Math.round(kb / 5120 * 100)); // 5MB limit
+  document.getElementById('storage-used').textContent  = `${kb} KB من 5,120 KB`;
+  document.getElementById('storage-fill').style.width  = pct + '%';
+  document.getElementById('storage-fill').style.background = pct > 80 ? 'var(--red)' : 'var(--purple)';
+  document.getElementById('storage-counts').innerHTML =
+    `📋 ${DB.visits.length} زيارة &nbsp;·&nbsp; 📦 ${DB.products.length} منتج &nbsp;·&nbsp; 🏪 ${DB.moves.length} حركة مخزون &nbsp;·&nbsp; 👤 ${(DB.coordinators||[]).length} منسق`;
+}
+
+// ════════════════════════════════════════
+//  PAGINATION HELPER
+// ════════════════════════════════════════
+function renderPagination(containerId, pages, current, onPageChange) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (pages <= 1) { el.innerHTML = ''; return; }
+
+  let h = `<span class="page-info">صفحة ${current} من ${pages}</span>`;
+  h += `<button class="page-btn" ${current === 1 ? 'disabled' : ''} onclick="(${onPageChange.toString()})(${current - 1})">‹</button>`;
+
+  const start = Math.max(1, current - 2);
+  const end   = Math.min(pages, current + 2);
+  if (start > 1) h += `<button class="page-btn" onclick="(${onPageChange.toString()})(1)">1</button>${start > 2 ? '<span style="color:var(--txt3);font-size:12px">…</span>' : ''}`;
+  for (let i = start; i <= end; i++) {
+    h += `<button class="page-btn${i === current ? ' active' : ''}" onclick="(${onPageChange.toString()})(${i})">${i}</button>`;
+  }
+  if (end < pages) h += `${end < pages - 1 ? '<span style="color:var(--txt3);font-size:12px">…</span>' : ''}<button class="page-btn" onclick="(${onPageChange.toString()})(${pages})">${pages}</button>`;
+  h += `<button class="page-btn" ${current === pages ? 'disabled' : ''} onclick="(${onPageChange.toString()})(${current + 1})">›</button>`;
+
+  el.innerHTML = h;
+}
+
+// ════════════════════════════════════════
+//  EXPORT
+// ════════════════════════════════════════
+function exportVisitsExcel() {
+  if (!filteredVisits.length) { toast('لا توجد بيانات للتصدير'); return; }
+  const ws = XLSX.utils.json_to_sheet(filteredVisits.map(v => ({
+    'المنسق':               v.coordinator   || '',
+    'الفرع':                v.branch        || '',
+    'Vendor':               v.vendor        || '',
+    'Product_Name_EN':      v.productNameEN || '',
+    'Quantity':             v.units         || 0,
+    'display status':       v.displayStatus || '',
+    'يوم الزيارة':         v.visitDay      || '',
+    'Account':              v.account       || '',
+    'تاريخ حتى الانتهاء': v.expiryDate    || '',
+    'وقت حتى الانتهاء':   v.remaining     || '',
+    'Alarm':                v.alarm         || '',
+    'الحالة':               v.status        || '',
+    'ملاحظات':              v.notes         || ''
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'زيارات');
+  XLSX.writeFile(wb, 'visits_export.xlsx');
+  toast('✅ تم تصدير الزيارات');
+}
+
+function exportProductsExcel() {
+  if (!DB.products.length) { toast('لا توجد بيانات للتصدير'); return; }
+  const ws = XLSX.utils.json_to_sheet(DB.products.map(p => ({
+    'Brand': p.brand || '',
+    'Code':  p.code  || '',
+    'Item':  p.name  || ''
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Items');
+  XLSX.writeFile(wb, 'items_export.xlsx');
+  toast('✅ تم تصدير الأصناف');
+}
+
+function exportAllExcel() {
+  if (!DB.visits.length && !DB.products.length && !DB.moves.length) {
+    toast('لا توجد بيانات للتصدير'); return;
+  }
+  const wb = XLSX.utils.book_new();
+  if (DB.visits.length) {
+    const ws = XLSX.utils.json_to_sheet(DB.visits.map(v => ({
+      'المنسق': v.coordinator||'', 'الفرع': v.branch||'', 'Vendor': v.vendor||'', 'Product_Name_EN': v.productNameEN||'',
+      'Quantity': v.units||0, 'display status': v.displayStatus||'', 'يوم الزيارة': v.visitDay||'',
+      'Account': v.account||'', 'Date': v.date||'', 'Remaining': v.remaining||'', 'Alarm': v.alarm||'', 'الحالة': v.status||''
+    })));
+    XLSX.utils.book_append_sheet(wb, ws, 'زيارات');
+  }
+  if (DB.products.length) {
+    const ws = XLSX.utils.json_to_sheet(DB.products.map(p => ({
+      'Brand': p.brand||'', 'Code': p.code||'', 'Item': p.name||''
+    })));
+    XLSX.utils.book_append_sheet(wb, ws, 'منتجات');
+  }
+  if (DB.moves.length) {
+    const ws = XLSX.utils.json_to_sheet(DB.moves.map(m => ({
+      'المنتج': m.product, 'الكمية': m.qty, 'نوع الحركة': m.type, 'التاريخ': m.date
+    })));
+    XLSX.utils.book_append_sheet(wb, ws, 'مخزون');
+  }
+  XLSX.writeFile(wb, 'merchpro_full_export.xlsx');
+  toast('✅ تم تصدير كل البيانات');
+}
+
+function exportBackup() {
+  const json = JSON.stringify(DB, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `merchpro_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('✅ تم تصدير النسخة الاحتياطية');
+}
+
+function restoreBackup(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.visits || !parsed.products || !parsed.moves) throw new Error('invalid');
+      showModal('استعادة نسخة احتياطية',
+        `سيتم استبدال كل البيانات الحالية بـ ${parsed.visits.length} زيارة و${parsed.products.length} منتج. متأكد؟`,
+        () => {
+          DB = parsed;
+          saveLocal();
+          buildConfig();
+          toast('✅ تم الاستعادة بنجاح');
+        });
+    } catch (e) {
+      toast('❌ ملف غير صالح');
+    }
+    document.getElementById('restore-input').value = '';
+  };
+  reader.readAsText(file);
+}
+
+function confirmClearAll() {
+  showModal('مسح كل البيانات',
+    '⚠️ هذا الإجراء لا يمكن التراجع عنه. سيتم حذف كل الزيارات والمنتجات والمخزون.',
+    () => {
+      DB = { visits: [], products: [], moves: [], coordinators: [] };
+      saveLocal();
+      buildConfig();
+      toast('تم مسح كل البيانات');
+    }
+  );
+}
+
+// ════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════
+let _modalCallback = null;
+
+function showModal(title, body, onConfirm) {
+  document.getElementById('modal-title').textContent  = title;
+  document.getElementById('modal-body').textContent   = body;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  _modalCallback = onConfirm;
+  document.getElementById('modal-confirm').onclick = () => {
+    closeModal();
+    if (_modalCallback) _modalCallback();
+  };
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  _modalCallback = null;
+}
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+let _toastTimer = null;
+function toast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function setBadge(txt, cls) {
+  const b = document.getElementById('sync-badge');
+  b.textContent = txt;
+  b.className   = 'sync-badge ' + cls;
+}
+
+// ════════════════════════════════════════
+//  COORDINATORS
+// ════════════════════════════════════════
+let coordPage = 1;
+let filteredCoords = [];
+let _editCoordIdx = -1;
+
+function renderCoordinators() {
+  const q   = (document.getElementById('c-search')?.value || '').toLowerCase();
+  const st  = document.getElementById('c-status')?.value || '';
+
+  if (!DB.coordinators) DB.coordinators = [];
+
+  filteredCoords = DB.coordinators.filter(c =>
+    (!q  || (c.name||'').toLowerCase().includes(q) || (c.area||'').toLowerCase().includes(q) ||
+             (c.phone||'').includes(q) || (c.code||'').toLowerCase().includes(q)) &&
+    (!st || c.status === st)
+  );
+
+  const total = filteredCoords.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  coordPage   = Math.min(coordPage, pages);
+  const slice = filteredCoords.slice((coordPage - 1) * PAGE_SIZE, coordPage * PAGE_SIZE);
+  const startIdx = (coordPage - 1) * PAGE_SIZE;
+
+  // metrics
+  const active   = DB.coordinators.filter(c => c.status === 'نشط').length;
+  const inactive = DB.coordinators.filter(c => c.status === 'غير نشط').length;
+  const vendors  = [...new Set(DB.coordinators.map(c => c.vendor).filter(Boolean))].length;
+  document.getElementById('coord-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">إجمالي المنسقين</div><div class="metric-val">${DB.coordinators.length}</div></div>
+    <div class="metric"><div class="metric-label">نشط</div><div class="metric-val" style="color:var(--green)">${active}</div></div>
+    <div class="metric"><div class="metric-label">غير نشط</div><div class="metric-val" style="color:var(--red)">${inactive}</div></div>
+    <div class="metric"><div class="metric-label">Vendors</div><div class="metric-val">${vendors}</div></div>`;
+
+  document.getElementById('coords-tbody').innerHTML = slice.length
+    ? slice.map((c, i) => {
+        const dbIdx = DB.coordinators.indexOf(c);
+        const visitCount = DB.visits.filter(v => v.coordinator === c.name).length;
+        const initials = (c.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        return `<tr>
+          <td style="color:var(--txt3);font-size:11px">${startIdx + i + 1}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--purple-l);color:var(--purple-d);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${initials}</div>
+              <div>
+                <div style="font-weight:600;font-size:13px">${c.name}</div>
+                ${c.notes ? `<div style="font-size:11px;color:var(--txt3)">${c.notes.substring(0,30)}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td style="font-family:monospace;font-size:12px;color:var(--blue-d)">${c.code || '—'}</td>
+          <td>${c.area || '—'}</td>
+          <td dir="ltr" style="text-align:right">${c.phone || '—'}</td>
+          <td>${c.vendor ? `<span class="badge p">${c.vendor}</span>` : '—'}</td>
+          <td><span class="badge b">${visitCount} زيارة</span></td>
+          <td>${badgeHtml(c.status || 'نشط')}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm" onclick="openCoordForm(${dbIdx})" title="تعديل">✏️</button>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l)" onclick="deleteCoord(${dbIdx})" title="حذف">🗑</button>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="9" style="text-align:center;color:var(--txt3);padding:30px">لا توجد بيانات — اضغط ➕ لإضافة منسق</td></tr>';
+
+  document.getElementById('coords-count').textContent = `عرض ${slice.length} من ${total} منسق`;
+  renderPagination('coords-pagination', pages, coordPage, p => { coordPage = p; renderCoordinators(); });
+}
+
+function openCoordForm(idx = -1) {
+  _editCoordIdx = idx;
+  const isEdit = idx >= 0;
+  const c = isEdit ? DB.coordinators[idx] : null;
+
+  document.getElementById('cf-title').textContent = isEdit ? '✏️ تعديل بيانات المنسق' : '➕ إضافة منسق جديد';
+  document.getElementById('cf-name').value   = c?.name   || '';
+  document.getElementById('cf-code').value   = c?.code   || '';
+  document.getElementById('cf-area').value   = c?.area   || '';
+  document.getElementById('cf-phone').value  = c?.phone  || '';
+  document.getElementById('cf-vendor').value = c?.vendor || '';
+  document.getElementById('cf-status').value = c?.status || 'نشط';
+  document.getElementById('cf-notes').value  = c?.notes  || '';
+  document.getElementById('cf-error').style.display = 'none';
+
+  // fill vendor datalist from products
+  const vendors = [...new Set([
+    ...DB.products.map(p => p.brand),
+    ...DB.coordinators.map(c => c.vendor)
+  ].filter(Boolean))].sort();
+  document.getElementById('dl-coord-vendors').innerHTML = vendors.map(v => `<option value="${v}">`).join('');
+
+  document.getElementById('coord-form-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('cf-name').focus(), 50);
+}
+
+function closeCoordForm() {
+  document.getElementById('coord-form-overlay').classList.add('hidden');
+  _editCoordIdx = -1;
+}
+
+function saveCoord() {
+  const name   = document.getElementById('cf-name').value.trim();
+  const code   = document.getElementById('cf-code').value.trim();
+  const area   = document.getElementById('cf-area').value.trim();
+  const phone  = document.getElementById('cf-phone').value.trim();
+  const vendor = document.getElementById('cf-vendor').value.trim();
+  const status = document.getElementById('cf-status').value;
+  const notes  = document.getElementById('cf-notes').value.trim();
+
+  const errEl = document.getElementById('cf-error');
+  if (!name) { errEl.textContent = '⚠️ الاسم مطلوب'; errEl.style.display = 'block'; document.getElementById('cf-name').focus(); return; }
+
+  // check duplicate name (excluding current edit)
+  const dupIdx = DB.coordinators.findIndex((c, i) => c.name === name && i !== _editCoordIdx);
+  if (dupIdx >= 0) { errEl.textContent = '⚠️ يوجد منسق بنفس الاسم'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const coord = { name, code, area, phone, vendor, status, notes };
+
+  if (_editCoordIdx >= 0) {
+    DB.coordinators[_editCoordIdx] = coord;
+    toast('✅ تم تعديل بيانات المنسق');
+  } else {
+    if (!DB.coordinators) DB.coordinators = [];
+    DB.coordinators.push(coord);
+    toast('✅ تم إضافة المنسق');
+  }
+
+  saveLocal();
+  closeCoordForm();
+  renderCoordinators();
+}
+
+function deleteCoord(idx) {
+  showModal('حذف منسق', `هل تريد حذف المنسق "${DB.coordinators[idx]?.name}"؟`, () => {
+    DB.coordinators.splice(idx, 1);
+    saveLocal();
+    renderCoordinators();
+    toast('تم الحذف');
+  });
+}
+
+function parseCoord(r) {
+  return {
+    name:   r['الاسم']      || r['name']   || r['Name']   || '',
+    code:   r['الكود']      || r['code']   || r['Code']   || '',
+    area:   r['المنطقة']    || r['area']   || r['Area']   || '',
+    phone:  String(r['رقم الهاتف'] || r['phone'] || r['Phone'] || r['Tel'] || ''),
+    vendor: r['Vendor']     || r['vendor'] || r['Brand']  || '',
+    status: r['الحالة']     || r['status'] || r['Status'] || 'نشط',
+    notes:  r['ملاحظات']    || r['notes']  || r['Notes']  || ''
+  };
+}
+
+function importCoordsFile(file) {
+  if (!file) return;
+  const input = document.getElementById('coord-import-input');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb    = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows  = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (!rows.length) { toast('⚠️ الملف فارغ'); input.value = ''; return; }
+
+      if (!DB.coordinators) DB.coordinators = [];
+      const existingNames = new Set(DB.coordinators.map(c => c.name.trim().toLowerCase()));
+
+      let added = 0, updated = 0, skipped = 0;
+
+      rows.forEach(r => {
+        const c = parseCoord(r);
+        if (!c.name) { skipped++; return; }
+        const key = c.name.trim().toLowerCase();
+        const idx = DB.coordinators.findIndex(x => x.name.trim().toLowerCase() === key);
+        if (idx >= 0) {
+          DB.coordinators[idx] = { ...DB.coordinators[idx], ...c };
+          updated++;
+        } else {
+          DB.coordinators.push(c);
+          added++;
+        }
+      });
+
+      saveLocal();
+      renderCoordinators();
+
+      const msg = document.getElementById('coord-import-msg');
+      const box = document.getElementById('coord-import-result');
+      msg.textContent = `✅ تم الاستيراد — ${added} منسق جديد · ${updated} تم تحديثه · ${skipped} صف فارغ`;
+      box.classList.remove('hidden');
+      if (added + updated === 0) {
+        box.style.background = 'var(--amber-l)';
+        box.style.color = '#633806';
+      } else {
+        box.style.background = 'var(--green-l)';
+        box.style.color = 'var(--green-d)';
+      }
+      toast(`✅ ${added} منسق جديد · ${updated} محدّث`);
+    } catch (err) {
+      toast('❌ فشل قراءة الملف — تأكد أنه Excel صحيح');
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadCoordTemplate() {
+  const data = [
+    { 'الاسم':'أحمد خضيري',  'الكود':'COORD-001', 'المنطقة':'مدينة نصر',     'رقم الهاتف':'01012345678', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'مروان محسن',   'الكود':'COORD-002', 'المنطقة':'المعادي',       'رقم الهاتف':'01198765432', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'هبة رمضان',    'الكود':'COORD-003', 'المنطقة':'العثيم',        'رقم الهاتف':'01156789012', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'أحمد دردير',   'الكود':'COORD-004', 'المنطقة':'الحلمية',      'رقم الهاتف':'01234567890', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'نبوة عبدالله', 'الكود':'COORD-005', 'المنطقة':'كارفور',       'رقم الهاتف':'01567890123', 'Vendor':'Spuds', 'الحالة':'غير نشط', 'ملاحظات':'إجازة' },
+  ];
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:18},{wch:12},{wch:16},{wch:14},{wch:10},{wch:10},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'المنسقين');
+  XLSX.writeFile(wb, 'Coordinators_Template.xlsx');
+  toast('✅ تم تحميل قالب المنسقين');
+}
+
+function exportCoordsExcel() {
+  if (!DB.coordinators?.length) { toast('لا توجد بيانات للتصدير'); return; }
+  const ws = XLSX.utils.json_to_sheet(DB.coordinators.map(c => ({
+    'الاسم':     c.name   || '',
+    'الكود':     c.code   || '',
+    'المنطقة':   c.area   || '',
+    'رقم الهاتف': c.phone || '',
+    'Vendor':    c.vendor || '',
+    'الحالة':    c.status || '',
+    'ملاحظات':   c.notes  || ''
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'المنسقين');
+  XLSX.writeFile(wb, 'coordinators_export.xlsx');
+  toast('✅ تم تصدير المنسقين');
+}
+
+// ════════════════════════════════════════
+//  VISIT FORM
+// ════════════════════════════════════════
+let _editVisitIdx = -1;
+
+function openVisitForm(idx = -1) {
+  _editVisitIdx = idx;
+  const isEdit = idx >= 0;
+  const v = isEdit ? DB.visits[idx] : null;
+
+  document.getElementById('vf-title').textContent = isEdit ? '✏️ تعديل الزيارة' : '➕ تسجيل زيارة جديدة';
+  document.getElementById('vf-coordinator').value = v?.coordinator || '';
+  document.getElementById('vf-branch').value       = v?.branch     || '';
+  document.getElementById('vf-vendor').value       = v?.vendor     || '';
+  document.getElementById('vf-account').value      = v?.account    || '';
+  document.getElementById('vf-visit-day').value    = v?.visitDay   || '';
+  document.getElementById('vf-date').value         = v?.date       || new Date().toISOString().slice(0, 10);
+  document.getElementById('vf-status').value       = v?.status     || 'مكتملة';
+  document.getElementById('vf-notes').value        = v?.notes      || '';
+  document.getElementById('vf-outlet').value       = v?.branch     || '';
+  document.getElementById('vf-area').value         = '';
+  document.getElementById('vf-error').style.display = 'none';
+
+  // populate items
+  const container = document.getElementById('vf-items-container');
+  container.innerHTML = '';
+  if (isEdit && v) {
+    addVisitItem({ productNameEN: v.productNameEN, units: v.units, displayStatus: v.displayStatus, expiryDate: v.expiryDate, remaining: v.remaining, alarm: v.alarm });
+  }
+  updateItemsEmpty();
+
+  // fill autocomplete datalists
+  const outlets = [...new Set(DB.visits.map(v => v.branch).filter(Boolean))].sort();
+  document.getElementById('dl-outlets').innerHTML = outlets.map(o => `<option value="${o}">`).join('');
+  const coordinators = [...new Set([...DB.visits.map(v => v.coordinator), ...(DB.coordinators||[]).map(c => c.name)].filter(Boolean))].sort();
+  document.getElementById('dl-coordinators').innerHTML = coordinators.map(c => `<option value="${c}">`).join('');
+  const vendors = [...new Set(DB.visits.map(v => v.vendor).filter(Boolean))].sort();
+  document.getElementById('dl-vendors').innerHTML = vendors.map(v => `<option value="${v}">`).join('');
+  const accounts = [...new Set(DB.visits.map(v => v.account).filter(Boolean))].sort();
+  document.getElementById('dl-accounts').innerHTML = accounts.map(a => `<option value="${a}">`).join('');
+
+  document.getElementById('visit-form-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('vf-coordinator').focus(), 50);
+}
+
+function closeVisitForm() {
+  document.getElementById('visit-form-overlay').classList.add('hidden');
+  _editVisitIdx = -1;
+}
+
+function addProductLine(data = {}) {
+  const container = document.getElementById('vf-products');
+  const div = document.createElement('div');
+  div.className = 'prod-line';
+
+  const prodOptions = DB.products.length
+    ? DB.products.map(p => `<option value="${p.name}"${p.name === data.name ? ' selected' : ''}>${p.name}</option>`).join('')
+    : `<option value="${data.name || ''}">${data.name || ''}</option>`;
+
+  div.innerHTML = `
+    <select class="form-input" style="font-size:12px;padding:6px 8px">
+      <option value="">اختر منتج</option>
+      ${prodOptions}
+    </select>
+    <input class="form-input" type="number" min="0" placeholder="الرف" value="${data.shelf ?? ''}" title="كمية على الرف" style="font-size:12px;padding:6px 8px">
+    <input class="form-input" type="number" min="0" placeholder="نُزِّل" value="${data.placed ?? ''}" title="كمية منزلة" style="font-size:12px;padding:6px 8px">
+    <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:5px 8px" onclick="this.parentElement.remove()" title="حذف">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function addVisitItem(data = {}) {
+  const container = document.getElementById('vf-items-container');
+  const row = document.createElement('div');
+  row.className = 'vf-item-row';
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;border-bottom:1px solid var(--border)';
+
+  const productOpts = DB.products.length
+    ? DB.products.map(p => `<option value="${p.name}"${p.name === data.productNameEN ? ' selected' : ''}>${p.code ? p.code + ' - ' : ''}${p.name}</option>`).join('')
+    : '';
+
+  row.innerHTML = `
+    <div style="padding:6px 8px;border-left:1px solid var(--border)">
+      <select class="form-select" data-field="productNameEN" style="font-size:12px;padding:5px 7px;width:100%">
+        <option value="">اختر صنف...</option>
+        ${productOpts}
+      </select>
+    </div>
+    <div style="padding:6px 8px;border-left:1px solid var(--border)">
+      <input class="form-input" data-field="units" type="number" min="0" placeholder="0" value="${data.units ?? ''}" style="font-size:12px;padding:5px 7px">
+    </div>
+    <div style="padding:6px 8px;border-left:1px solid var(--border)">
+      <input class="form-input" data-field="displayStatus" placeholder="الرف" value="${data.displayStatus || ''}" style="font-size:12px;padding:5px 7px">
+    </div>
+    <div style="padding:6px 8px;border-left:1px solid var(--border)">
+      <input class="form-input" data-field="expiryDate" type="date" value="${data.expiryDate || ''}" style="font-size:12px;padding:5px 7px">
+    </div>
+    <div style="padding:6px 8px;border-left:1px solid var(--border)">
+      <input class="form-input" data-field="remaining" type="number" placeholder="-184" value="${data.remaining ?? ''}" style="font-size:12px;padding:5px 7px">
+    </div>
+    <div style="padding:6px 8px;border-left:1px solid var(--border)">
+      <input class="form-input" data-field="alarm" placeholder="near Expiry" value="${data.alarm || ''}" style="font-size:12px;padding:5px 7px">
+    </div>
+    <div style="padding:6px 8px;display:flex;align-items:center">
+      <button type="button" class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:4px 8px" onclick="this.closest('.vf-item-row').remove();updateItemsEmpty()">✕</button>
+    </div>`;
+
+  // if a product is already selected via data, set the select value
+  if (data.productNameEN) {
+    const sel = row.querySelector('select[data-field="productNameEN"]');
+    // try exact match first, otherwise leave as freetext option
+    if (![...sel.options].some(o => o.value === data.productNameEN)) {
+      const opt = document.createElement('option');
+      opt.value = data.productNameEN;
+      opt.textContent = data.productNameEN;
+      opt.selected = true;
+      sel.appendChild(opt);
+    } else {
+      sel.value = data.productNameEN;
+    }
+  }
+
+  container.appendChild(row);
+  updateItemsEmpty();
+}
+
+function updateItemsEmpty() {
+  const container = document.getElementById('vf-items-container');
+  const empty     = document.getElementById('vf-items-empty');
+  empty.style.display = container.children.length === 0 ? 'block' : 'none';
+}
+
+function saveVisit() {
+  const coordinator = document.getElementById('vf-coordinator').value.trim();
+  const branch      = document.getElementById('vf-branch').value.trim();
+  const vendor      = document.getElementById('vf-vendor').value.trim();
+  const account     = document.getElementById('vf-account').value.trim();
+  const visitDay    = parseInt(document.getElementById('vf-visit-day').value) || 0;
+  const date        = document.getElementById('vf-date').value.trim();
+  const status      = document.getElementById('vf-status').value;
+  const notes       = document.getElementById('vf-notes').value.trim();
+
+  const errEl = document.getElementById('vf-error');
+  if (!branch) { errEl.textContent = '⚠️ الفرع مطلوب'; errEl.style.display = 'block'; document.getElementById('vf-branch').focus(); return; }
+  if (!date)   { errEl.textContent = '⚠️ التاريخ مطلوب'; errEl.style.display = 'block'; document.getElementById('vf-date').focus(); return; }
+  errEl.style.display = 'none';
+
+  // collect items
+  const rows = document.querySelectorAll('#vf-items-container .vf-item-row');
+  const items = [...rows].map(row => ({
+    productNameEN: row.querySelector('[data-field="productNameEN"]')?.value?.trim() || '',
+    units:         parseInt(row.querySelector('[data-field="units"]')?.value) || 0,
+    displayStatus: row.querySelector('[data-field="displayStatus"]')?.value?.trim() || '',
+    expiryDate:    row.querySelector('[data-field="expiryDate"]')?.value?.trim() || '',
+    remaining:     parseInt(row.querySelector('[data-field="remaining"]')?.value) || 0,
+    alarm:         row.querySelector('[data-field="alarm"]')?.value?.trim() || '',
+  })).filter(it => it.productNameEN);
+
+  if (rows.length > 0 && items.length === 0) {
+    errEl.textContent = '⚠️ اختر صنف واحد على الأقل أو احذف الصفوف الفارغة';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const header = { coordinator, branch, vendor, account, visitDay, date, status, notes, outlet: branch, area: account };
+
+  if (_editVisitIdx >= 0) {
+    // editing: update single record (keep item fields from first row or blank)
+    const it = items[0] || {};
+    DB.visits[_editVisitIdx] = { ...header, productNameEN: it.productNameEN||'', units: it.units||0, displayStatus: it.displayStatus||'', remaining: it.remaining||0, alarm: it.alarm||'' };
+    toast('✅ تم تعديل الزيارة');
+  } else {
+    if (items.length === 0) {
+      // no items — save header-only record
+      DB.visits.push({ ...header, productNameEN: '', units: 0, displayStatus: '', remaining: 0, alarm: '' });
+    } else {
+      items.forEach(it => DB.visits.push({ ...header, ...it }));
+    }
+    toast(`✅ تم حفظ الزيارة (${items.length || 1} صنف)`);
+  }
+
+  saveLocal();
+  closeVisitForm();
+  visitPage = 1;
+  renderVisits();
+  buildHome();
+}
+</script>
+</body>
+</html>
