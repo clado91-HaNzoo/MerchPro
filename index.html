@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -257,9 +257,9 @@ textarea.form-input { resize: vertical; }
 <!-- ═══════════════ TAB: VISITS ═══════════════ -->
 <div class="content hidden" id="tab-visits">
   <div class="filter-bar">
-    <input class="form-input" id="v-search" placeholder="بحث بالمنسق أو الفرع أو Account..." oninput="renderVisits()">
-    <select class="form-select" id="v-vendor" onchange="renderVisits()" style="max-width:140px">
-      <option value="">كل الـ Vendors</option>
+    <input class="form-input" id="v-search" placeholder="بحث بالمنسق أو الفرع أو Vendor..." oninput="renderVisits()">
+    <select class="form-select" id="v-brand" onchange="renderVisits()" style="max-width:140px">
+      <option value="">كل الـ Brands</option>
     </select>
     <select class="form-select" id="v-status" onchange="renderVisits()" style="max-width:140px">
       <option value="">كل الحالات</option>
@@ -277,12 +277,12 @@ textarea.form-input { resize: vertical; }
           <th>#</th>
           <th>المنسق</th>
           <th>الفرع</th>
-          <th>Vendor</th>
+          <th>Brand</th>
           <th>Product_Name_EN</th>
           <th>Quantity</th>
           <th>display status</th>
           <th>يوم الزيارة</th>
-          <th>Account</th>
+          <th>Vendor</th>
           <th>تاريخ حتى الانتهاء</th>
           <th>وقت حتى الانتهاء</th>
           <th>Alarm</th>
@@ -406,7 +406,7 @@ textarea.form-input { resize: vertical; }
           <th>الكود</th>
           <th>المنطقة</th>
           <th>رقم الهاتف</th>
-          <th>Vendor</th>
+          <th>Brand</th>
           <th>عدد الزيارات</th>
           <th>الحالة</th>
           <th></th>
@@ -423,6 +423,60 @@ textarea.form-input { resize: vertical; }
 
 <!-- ═══════════════ TAB: CONFIG ═══════════════ -->
 <div class="content hidden" id="tab-config">
+
+  <!-- إدارة القوائم -->
+  <div class="card">
+    <div class="card-title">📋 إدارة قوائم الـ Dropdowns</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px" id="lists-grid-top">
+      <!-- Account -->
+      <div style="grid-column:1/-1">
+        <div style="font-size:12px;font-weight:600;color:var(--purple-d);margin-bottom:8px">🏬 Account (مربوط بالفروع)</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input class="form-input" id="add-account-input" placeholder="أضف Account جديد... (مثال: سبينس)" style="font-size:12px;flex:1">
+          <button class="btn btn-sm btn-primary" onclick="addListItem('accounts','add-account-input')">+</button>
+          <button class="btn btn-sm" onclick="document.getElementById('account-bulk-input').click()" title="استيراد Excel">📥</button>
+          <button class="btn btn-sm" onclick="downloadAccountTemplate()" title="تحميل قالب">⬇</button>
+          <input type="file" id="account-bulk-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importAccountsFile(this.files[0])">
+        </div>
+        <div id="account-import-msg" style="display:none;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:8px"></div>
+        <div id="list-accounts" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px" id="lists-grid">
+      <!-- Vendor -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:8px">Vendor</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="form-input" id="add-vendor-input" placeholder="أضف Vendor جديد..." style="font-size:12px;flex:1">
+          <button class="btn btn-sm btn-primary" onclick="addListItem('vendors','add-vendor-input')">+</button>
+        </div>
+        <div id="list-vendors" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto"></div>
+      </div>
+      <!-- Branch -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:8px">الفرع</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="form-input" id="add-branch-input" placeholder="أضف فرع جديد..." style="font-size:12px;flex:1">
+          <button class="btn btn-sm btn-primary" onclick="addListItem('branches','add-branch-input')">+</button>
+          <button class="btn btn-sm" onclick="document.getElementById('branch-bulk-input').click()" title="استيراد Excel">📥</button>
+          <button class="btn btn-sm" onclick="downloadBranchTemplate()" title="تحميل قالب">⬇</button>
+          <input type="file" id="branch-bulk-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importBranchesFile(this.files[0])">
+        </div>
+        <div id="branch-import-msg" style="display:none;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:6px"></div>
+        <div id="list-branches" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto"></div>
+      </div>
+      <!-- Brand -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:8px">Brand</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="form-input" id="add-brand-input" placeholder="أضف Brand جديد..." style="font-size:12px;flex:1">
+          <button class="btn btn-sm btn-primary" onclick="addListItem('brands','add-brand-input')">+</button>
+        </div>
+        <div id="list-brands" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">💾 التخزين المحلي</div>
     <div class="storage-bar" id="storage-info">
@@ -482,21 +536,31 @@ textarea.form-input { resize: vertical; }
       </div>
       <div class="form-row" style="margin:0">
         <label class="form-label">الفرع <span style="color:var(--red)">*</span></label>
-        <input class="form-input" id="vf-branch" placeholder="مثال: سبينس مدينة نصر" list="dl-outlets" autocomplete="off">
+        <select class="form-select" id="vf-branch">
+          <option value="">— اختر الفرع —</option>
+        </select>
       </div>
     </div>
 
-    <!-- Row 2: Vendor + Account -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-      <div class="form-row" style="margin:0">
-        <label class="form-label">Vendor</label>
-        <input class="form-input" id="vf-vendor" placeholder="مثال: Spuds" list="dl-vendors" autocomplete="off">
-        <datalist id="dl-vendors"></datalist>
-      </div>
+    <!-- Row 2: Account + Vendor + Brand -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
       <div class="form-row" style="margin:0">
         <label class="form-label">Account</label>
-        <input class="form-input" id="vf-account" placeholder="مثال: سبينس" list="dl-accounts" autocomplete="off">
-        <datalist id="dl-accounts"></datalist>
+        <select class="form-select" id="vf-account" onchange="onAccountChange()">
+          <option value="">— اختر Account —</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Brand</label>
+        <select class="form-select" id="vf-brand" onchange="onBrandChange()">
+          <option value="">— اختر Brand —</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Vendor</label>
+        <select class="form-select" id="vf-vendor" onchange="onVendorChange()">
+          <option value="">— اختر Vendor —</option>
+        </select>
       </div>
     </div>
 
@@ -531,17 +595,7 @@ textarea.form-input { resize: vertical; }
         <span style="font-size:13px;font-weight:600">📦 الأصناف</span>
         <button class="btn btn-primary btn-sm" type="button" onclick="addVisitItem()">➕ إضافة صنف</button>
       </div>
-      <!-- items header -->
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:0;background:var(--bg);border-bottom:1px solid var(--border)">
-        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">Product_Name_EN</div>
-        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">Qty</div>
-        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">display status</div>
-        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">تاريخ حتى الانتهاء</div>
-        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">وقت حتى الانتهاء</div>
-        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:var(--txt2)">Alarm</div>
-        <div style="padding:6px 10px;width:36px"></div>
-      </div>
-      <div id="vf-items-container"></div>
+      <div id="vf-items-container" style="display:flex;flex-direction:column;gap:0"></div>
       <div id="vf-items-empty" style="padding:20px;text-align:center;color:var(--txt3);font-size:13px">لا توجد أصناف — اضغط ➕ لإضافة صنف</div>
     </div>
 
@@ -726,7 +780,7 @@ textarea.form-input { resize: vertical; }
 // ════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════
-let DB = { visits: [], products: [], moves: [], coordinators: [] };
+let DB = { visits: [], products: [], moves: [], coordinators: [], lists: { vendors: [], branches: [], brands: [], accounts: [], accountBranches: {} } };
 
 const PAGE_SIZE = 20;
 let visitPage   = 1;
@@ -744,6 +798,12 @@ let rawSheets = {};
     try {
       DB = JSON.parse(saved);
       if (!DB.coordinators) DB.coordinators = [];
+      if (!DB.lists) DB.lists = { vendors: [], branches: [], brands: [] };
+      if (!DB.lists.vendors)        DB.lists.vendors        = [];
+      if (!DB.lists.branches)       DB.lists.branches       = [];
+      if (!DB.lists.brands)         DB.lists.brands         = [];
+      if (!DB.lists.accounts)       DB.lists.accounts       = [];
+      if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
       setBadge('💾 محفوظ محلياً', 'sync-ok');
     } catch (e) {
       setBadge('⚠️ خطأ في البيانات', 'sync-err');
@@ -932,12 +992,12 @@ function handleFile(file) {
 
 function downloadTemplate() {
   const visitsData = [
-    { '#':1, 'المنسق':'أحمد خضيري',  'الفرع':'سبينس مدينة نصر',                   'Vendor':'Spuds', 'Product_Name_EN':'سبدز-حصوص الليمون 8 كيس 82-72',      'Column':14, 'Mon':11, 'Year':2025, 'Quantity':4,  'display status':'الرف', 'يوم الزيارة':22, 'Account':'سبينس',                 'تاريخ حتى الانتهاء':'2/28/2026', 'وقت حتى الانتهاء':-184, 'Alarm':'near Expiry' },
-    { '#':2, 'المنسق':'مروان محسن',   'الفرع':'سبينس انبوكس',                      'Vendor':'Spuds', 'Product_Name_EN':'سبدز كرافت كوكد تشيز توست 110-100',  'Column':17, 'Mon':11, 'Year':2025, 'Quantity':12, 'display status':'الرف', 'يوم الزيارة':27, 'Account':'سبينس',                 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-181, 'Alarm':'near Expiry' },
-    { '#':3, 'المنسق':'هبة رمضان',    'الفرع':'اسواق عبدالله العثيم _ العشرين',    'Vendor':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',       'Column':19, 'Mon':11, 'Year':2025, 'Quantity':9,  'display status':'الرف', 'يوم الزيارة':22, 'Account':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
-    { '#':4, 'المنسق':'هبة رمضان',    'الفرع':'اسواق عبدالله العثيم _ ميدان الساعه','Vendor':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',      'Column':19, 'Mon':11, 'Year':2025, 'Quantity':5,  'display status':'الرف', 'يوم الزيارة':22, 'Account':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
-    { '#':5, 'المنسق':'أحمد دردير',   'الفرع':'اسواق عبدالله العثيم _الحلمية',     'Vendor':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',       'Column':19, 'Mon':11, 'Year':2025, 'Quantity':6,  'display status':'الرف', 'يوم الزيارة':21, 'Account':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
-    { '#':6, 'المنسق':'مروان محسن',   'الفرع':'سبينس انبوكس',                      'Vendor':'Spuds', 'Product_Name_EN':'سبدز-تشيز توست 20 كيس 82-72',        'Column':25, 'Mon':11, 'Year':2025, 'Quantity':23, 'display status':'الرف', 'يوم الزيارة':27, 'Account':'سبينس',                 'تاريخ حتى الانتهاء':'4/1/2026',  'وقت حتى الانتهاء':-173, 'Alarm':'near Expiry' },
+    { '#':1, 'المنسق':'أحمد خضيري',  'الفرع':'سبينس مدينة نصر',                   'Brand':'Spuds', 'Product_Name_EN':'سبدز-حصوص الليمون 8 كيس 82-72',      'Column':14, 'Mon':11, 'Year':2025, 'Quantity':4,  'display status':'الرف', 'يوم الزيارة':22, 'vendor':'سبينس',                 'تاريخ حتى الانتهاء':'2/28/2026', 'وقت حتى الانتهاء':-184, 'Alarm':'near Expiry' },
+    { '#':2, 'المنسق':'مروان محسن',   'الفرع':'سبينس انبوكس',                      'Brand':'Spuds', 'Product_Name_EN':'سبدز كرافت كوكد تشيز توست 110-100',  'Column':17, 'Mon':11, 'Year':2025, 'Quantity':12, 'display status':'الرف', 'يوم الزيارة':27, 'vendor':'سبينس',                 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-181, 'Alarm':'near Expiry' },
+    { '#':3, 'المنسق':'هبة رمضان',    'الفرع':'اسواق عبدالله العثيم _ العشرين',    'Brand':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',       'Column':19, 'Mon':11, 'Year':2025, 'Quantity':9,  'display status':'الرف', 'يوم الزيارة':22, 'vendor':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
+    { '#':4, 'المنسق':'هبة رمضان',    'الفرع':'اسواق عبدالله العثيم _ ميدان الساعه','Brand':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',      'Column':19, 'Mon':11, 'Year':2025, 'Quantity':5,  'display status':'الرف', 'يوم الزيارة':22, 'vendor':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
+    { '#':5, 'المنسق':'أحمد دردير',   'الفرع':'اسواق عبدالله العثيم _الحلمية',     'Brand':'Spuds', 'Product_Name_EN':'سبدز-ترافل تشيز 20 كيس 57-47',       'Column':19, 'Mon':11, 'Year':2025, 'Quantity':6,  'display status':'الرف', 'يوم الزيارة':21, 'vendor':'أسواق عبد الله العثيم', 'تاريخ حتى الانتهاء':'3/15/2026', 'وقت حتى الانتهاء':-179, 'Alarm':'near Expiry' },
+    { '#':6, 'المنسق':'مروان محسن',   'الفرع':'سبينس انبوكس',                      'Brand':'Spuds', 'Product_Name_EN':'سبدز-تشيز توست 20 كيس 82-72',        'Column':25, 'Mon':11, 'Year':2025, 'Quantity':23, 'display status':'الرف', 'يوم الزيارة':27, 'vendor':'سبينس',                 'تاريخ حتى الانتهاء':'4/1/2026',  'وقت حتى الانتهاء':-173, 'Alarm':'near Expiry' },
   ];
 
   const itemsData = [
@@ -1155,15 +1215,15 @@ function parseVisit(r) {
   return {
     coordinator:   r['المنسق']          || r['coordinator']  || '',
     branch:        r['الفرع']           || r['branch']       || '',
-    vendor:        r['Vendor']          || r['vendor']       || '',
+    vendor:        r['Brand']          || r['vendor']       || '',
     productNameEN: r['Product_Name_EN'] || r['product_name_en'] || r['اسم المنتج'] || '',
     outlet:        r['الفرع']           || r['نقطة البيع']   || r['outlet'] || '',
-    area:          r['Account']         || r['منطقة']        || r['area']   || '',
+    area:          r['vendor']         || r['منطقة']        || r['area']   || '',
     date,
     units:         parseInt(r['Quantity']    || r['الوحدات'] || r['units'] || 0) || 0,
     displayStatus: r['display status']  || r['display_status'] || r['الرف'] || '',
     visitDay:      parseInt(r['يوم الزيارة'] || r['visit_day'] || 0) || 0,
-    account:       r['Account']         || r['account']      || '',
+    account:       r['vendor']         || r['account']      || '',
     expiryDate:    String(r['تاريخ حتى الانتهاء'] || r['Expiry Date'] || r['expiry_date'] || ''),
     remaining:     parseInt(r['وقت حتى الانتهاء'] || r['Ren'] || r['Remaining'] || r['remaining'] || 0) || 0,
     alarm:         r['Alarm']           || r['alarm']        || '',
@@ -1174,7 +1234,7 @@ function parseVisit(r) {
 
 function parseProd(r) {
   return {
-    brand:  r['Brand']  || r['brand']  || r['Vendor'] || r['vendor'] || '',
+    brand:  r['Brand']  || r['brand']  || r['Brand'] || r['Vendor'] || r['vendor'] || '',
     code:   r['Code']   || r['code']   || r['كود']    || '',
     name:   r['Item']   || r['item']   || r['اسم']    || r['name']   || Object.values(r)[2] || '',
     cat:    r['فئة']    || r['category'] || '',
@@ -1273,9 +1333,9 @@ function renderVisits() {
 
   filteredVisits = [...DB.visits].reverse().filter(v =>
     (!q   || (v.coordinator||'').toLowerCase().includes(q) || (v.branch||'').toLowerCase().includes(q) ||
-              (v.account||'').toLowerCase().includes(q) || (v.productNameEN||'').toLowerCase().includes(q) ||
+              (v.vendor||'').toLowerCase().includes(q) || (v.productNameEN||'').toLowerCase().includes(q) ||
               (v.outlet||'').toLowerCase().includes(q)) &&
-    (!vnd  || v.vendor === vnd) &&
+    (!vnd  || v.brand === vnd) &&
     (!st   || v.status === st) &&
     (!from || v.date >= from) &&
     (!to   || v.date <= to)
@@ -1285,8 +1345,8 @@ function renderVisits() {
   const vndSel = document.getElementById('v-vendor');
   if (vndSel) {
     const curVnd = vndSel.value;
-    const vendors = [...new Set(DB.visits.map(v => v.vendor).filter(Boolean))].sort();
-    vndSel.innerHTML = '<option value="">كل الـ Vendors</option>' + vendors.map(v => `<option${v === curVnd ? ' selected' : ''}>${v}</option>`).join('');
+    const vendors = [...new Set(DB.visits.map(v => v.brand).filter(Boolean))].sort();
+    vndSel.innerHTML = '<option value="">كل الـ Brands</option>' + vendors.map(v => `<option${v === curVnd ? ' selected' : ''}>${v}</option>`).join('');
   }
 
   const total   = filteredVisits.length;
@@ -1310,12 +1370,12 @@ function renderVisits() {
           <td style="color:var(--txt3);font-size:11px">${startIdx + i + 1}</td>
           <td title="${v.coordinator||''}">${v.coordinator||'—'}</td>
           <td title="${v.branch||''}" style="max-width:160px">${v.branch||'—'}</td>
-          <td><span class="badge p">${v.vendor||'—'}</span></td>
+          <td><span class="badge p">${v.brand||'—'}</span></td>
           <td title="${v.productNameEN||''}" style="max-width:180px">${v.productNameEN||'—'}</td>
           <td style="font-weight:600">${parseInt(v.units)||0}</td>
           <td>${v.displayStatus||'—'}</td>
           <td style="text-align:center">${v.visitDay||'—'}</td>
-          <td title="${v.account||''}">${v.account||'—'}</td>
+          <td title="${v.vendor||''}">${v.vendor||'—'}</td>
           <td style="white-space:nowrap;color:var(--txt2)">${v.expiryDate||'—'}</td>
           <td style="color:${remColor};font-weight:600">${rem !== 0 ? rem : '—'}</td>
           <td>${alarmBadge(v.alarm)}</td>
@@ -1429,8 +1489,294 @@ function renderStock() {
   renderPagination('stock-pagination', pages, stockPage, p => { stockPage = p; renderStock(); });
 }
 
+// ════════════════════════════════════════
+//  LISTS MANAGEMENT
+// ════════════════════════════════════════
+function renderLists() {
+  // ── Accounts (special render with branches) ──────────────
+  const accEl = document.getElementById('list-accounts');
+  if (accEl) {
+    const accounts = [...new Set([
+      ...(DB.lists?.accounts || []),
+      ...DB.visits.map(v => v.account).filter(Boolean)
+    ])].sort();
+
+    if (!accounts.length) {
+      accEl.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:4px">لا توجد accounts — أضف واحد من فوق</div>';
+    } else {
+      accEl.innerHTML = accounts.map(acc => {
+        const linked = (DB.lists?.accountBranches?.[acc] || []);
+        const allBranches = getListValues('branches');
+        const unlinked = allBranches.filter(b => !linked.includes(b));
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;background:var(--bg)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--purple-d)">🏬 ${acc}</span>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:2px 7px;font-size:11px"
+              onclick="removeListItem('accounts','${acc.replace(/'/g,"\\'")}')">✕ حذف</button>
+          </div>
+          <!-- linked branches -->
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">
+            ${linked.length ? linked.map(b =>
+              `<span style="background:var(--purple-l);color:var(--purple-d);padding:3px 8px;border-radius:99px;font-size:11px;display:flex;align-items:center;gap:4px">
+                ${b}
+                <span style="cursor:pointer;font-weight:700" onclick="unlinkBranch('${acc.replace(/'/g,"\\'")}','${b.replace(/'/g,"\\'")}')">×</span>
+              </span>`).join('')
+            : '<span style="font-size:11px;color:var(--txt3)">لا توجد فروع مرتبطة</span>'}
+          </div>
+          <!-- add branch -->
+          ${unlinked.length ? `<div style="display:flex;gap:6px">
+            <select class="form-select" id="link-branch-${acc.replace(/[^a-zA-Z0-9]/g,'_')}" style="font-size:11px;padding:3px 6px;flex:1">
+              <option value="">+ اربط فرع</option>
+              ${unlinked.map(b => `<option value="${b}">${b}</option>`).join('')}
+            </select>
+            <button class="btn btn-sm" style="font-size:11px;padding:3px 8px"
+              onclick="linkBranch('${acc.replace(/'/g,"\\'")}','link-branch-${acc.replace(/[^a-zA-Z0-9]/g,'_')}')">ربط</button>
+          </div>` : ''}
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── Other lists ───────────────────────────────────────────
+  ['vendors','branches','brands'].forEach(key => {
+    const el = document.getElementById('list-' + key);
+    if (!el) return;
+    const fromVisits = key === 'vendors'  ? [...new Set(DB.visits.map(v => v.vendor).filter(Boolean))]
+                     : key === 'branches' ? [...new Set(DB.visits.map(v => v.branch).filter(Boolean))]
+                     :                      [...new Set(DB.products.map(p => p.brand).filter(Boolean))];
+    const custom = DB.lists?.[key] || [];
+    const all    = [...new Set([...custom, ...fromVisits])].sort();
+
+    if (!all.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:4px">لا توجد قيم</div>';
+      return;
+    }
+    el.innerHTML = all.map(val => {
+      const isFromVisits = fromVisits.includes(val) && !custom.includes(val);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:var(--radius-sm)">
+        <span style="font-size:12px">${val}${isFromVisits ? ' <span style="font-size:10px;color:var(--txt3)">(من الزيارات)</span>' : ''}</span>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:2px 7px;font-size:11px"
+          onclick="removeListItem('${key}','${val.replace(/'/g,"\\'")}')">✕</button>
+      </div>`;
+    }).join('');
+  });
+}
+
+function importAccountsFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb   = XLSX.read(e.target.result, { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      if (!rows.length) { toast('⚠️ الملف فارغ'); return; }
+
+      if (!DB.lists) DB.lists = { vendors:[], branches:[], brands:[], accounts:[], accountBranches:{} };
+      if (!DB.lists.accounts)       DB.lists.accounts = [];
+      if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
+      if (!DB.lists.branches)       DB.lists.branches = [];
+
+      let addedAcc = 0, addedBranch = 0, linked = 0;
+
+      rows.forEach(r => {
+        const acc    = String(r['Account'] || r['account'] || r['الاسم'] || '').trim();
+        const branch = String(r['Branch']  || r['branch']  || r['الفرع'] || '').trim();
+        if (!acc) return;
+
+        // add account
+        if (!DB.lists.accounts.includes(acc)) {
+          DB.lists.accounts.push(acc);
+          addedAcc++;
+        }
+        // add branch
+        if (branch) {
+          if (!DB.lists.branches.includes(branch)) {
+            DB.lists.branches.push(branch);
+            addedBranch++;
+          }
+          // link branch to account
+          if (!DB.lists.accountBranches[acc]) DB.lists.accountBranches[acc] = [];
+          if (!DB.lists.accountBranches[acc].includes(branch)) {
+            DB.lists.accountBranches[acc].push(branch);
+            linked++;
+          }
+        }
+      });
+
+      saveLocal();
+      renderLists();
+      document.getElementById('account-bulk-input').value = '';
+
+      const msgEl = document.getElementById('account-import-msg');
+      msgEl.style.display = 'block';
+      msgEl.style.background = 'var(--green-l)';
+      msgEl.style.color = 'var(--green-d)';
+      msgEl.textContent = `✅ ${addedAcc} account جديد · ${addedBranch} فرع جديد · ${linked} ربط`;
+      setTimeout(() => msgEl.style.display = 'none', 4000);
+      toast(`✅ تم استيراد ${addedAcc} account`);
+    } catch {
+      toast('❌ فشل قراءة الملف');
+      document.getElementById('account-bulk-input').value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importBranchesFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb   = XLSX.read(e.target.result, { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      if (!rows.length) { toast('⚠️ الملف فارغ'); return; }
+
+      if (!DB.lists.branches) DB.lists.branches = [];
+      let added = 0, skipped = 0;
+
+      rows.forEach(r => {
+        const branch = String(r['Branch'] || r['branch'] || r['الفرع'] || r['اسم الفرع'] || Object.values(r)[0] || '').trim();
+        if (!branch) { skipped++; return; }
+        if (!DB.lists.branches.includes(branch)) {
+          DB.lists.branches.push(branch);
+          added++;
+        } else skipped++;
+      });
+
+      saveLocal();
+      renderLists();
+      document.getElementById('branch-bulk-input').value = '';
+
+      const msgEl = document.getElementById('branch-import-msg');
+      msgEl.style.display = 'block';
+      msgEl.style.background = added ? 'var(--green-l)' : 'var(--amber-l)';
+      msgEl.style.color      = added ? 'var(--green-d)' : '#633806';
+      msgEl.textContent = `✅ ${added} فرع جديد · ${skipped} موجود مسبقاً`;
+      setTimeout(() => msgEl.style.display = 'none', 4000);
+      toast(`✅ تم إضافة ${added} فرع`);
+    } catch {
+      toast('❌ فشل قراءة الملف');
+      document.getElementById('branch-bulk-input').value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadBranchTemplate() {
+  const data = [
+    { 'Branch': 'سبينس مدينة نصر' },
+    { 'Branch': 'سبينس انبوكس' },
+    { 'Branch': 'سبينس الزمالك' },
+    { 'Branch': 'كارفور المعادي' },
+    { 'Branch': 'كارفور مدينة نصر' },
+    { 'Branch': 'اسواق عبدالله العثيم _ العشرين' },
+    { 'Branch': 'اسواق عبدالله العثيم _ ميدان الساعه' },
+  ];
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{ wch: 36 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Branches');
+  XLSX.writeFile(wb, 'Branches_Template.xlsx');
+  toast('✅ تم تحميل قالب الفروع');
+}
+
+function downloadAccountTemplate() {
+  const data = [
+    { 'Account':'سبينس',                  'Branch':'سبينس مدينة نصر' },
+    { 'Account':'سبينس',                  'Branch':'سبينس انبوكس' },
+    { 'Account':'سبينس',                  'Branch':'سبينس الزمالك' },
+    { 'Account':'كارفور',                 'Branch':'كارفور المعادي' },
+    { 'Account':'كارفور',                 'Branch':'كارفور مدينة نصر' },
+    { 'Account':'أسواق عبد الله العثيم', 'Branch':'اسواق عبدالله العثيم _ العشرين' },
+    { 'Account':'أسواق عبد الله العثيم', 'Branch':'اسواق عبدالله العثيم _ ميدان الساعه' },
+  ];
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{ wch: 28 }, { wch: 36 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Accounts');
+  XLSX.writeFile(wb, 'Accounts_Template.xlsx');
+  toast('✅ تم تحميل قالب الـ Accounts');
+}
+
+function linkBranch(account, selectId) {
+  const sel    = document.getElementById(selectId);
+  const branch = sel?.value;
+  if (!branch) return;
+  if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
+  if (!DB.lists.accountBranches[account]) DB.lists.accountBranches[account] = [];
+  if (!DB.lists.accountBranches[account].includes(branch)) {
+    DB.lists.accountBranches[account].push(branch);
+    saveLocal();
+    renderLists();
+    toast(`تم ربط "${branch}" بـ "${account}"`);
+  }
+}
+
+function unlinkBranch(account, branch) {
+  if (!DB.lists.accountBranches?.[account]) return;
+  DB.lists.accountBranches[account] = DB.lists.accountBranches[account].filter(b => b !== branch);
+  saveLocal();
+  renderLists();
+}
+
+function addListItem(key, inputId) {
+  const input = document.getElementById(inputId);
+  const val   = input?.value?.trim();
+  if (!val) return;
+  if (!DB.lists) DB.lists = { vendors: [], branches: [], brands: [] };
+  if (!DB.lists[key]) DB.lists[key] = [];
+  if (!DB.lists[key].includes(val)) {
+    DB.lists[key].push(val);
+    saveLocal();
+    renderLists();
+    refreshFormDropdowns();
+  }
+  input.value = '';
+}
+
+function removeListItem(key, val) {
+  if (!DB.lists?.[key]) return;
+  // remove from custom list
+  DB.lists[key] = DB.lists[key].filter(v => v !== val);
+  // also remove from visits if it came from there
+  if (key === 'vendors')  DB.visits = DB.visits.filter(v => v.vendor !== val);
+  if (key === 'branches') DB.visits = DB.visits.filter(v => v.branch !== val);
+  if (key === 'brands')   DB.products = DB.products.filter(p => p.brand !== val);
+  saveLocal();
+  renderLists();
+  refreshFormDropdowns();
+  toast(`تم حذف "${val}"`);
+}
+
+function refreshFormDropdowns() {
+  // refresh branch dropdown in visit form if open
+  const branchSel = document.getElementById('vf-branch');
+  if (branchSel) {
+    const branches = getListValues('branches');
+    const cur = branchSel.value;
+    branchSel.innerHTML = '<option value="">— اختر الفرع —</option>' +
+      branches.map(b => `<option value="${b}"${b===cur?' selected':''}>${b}</option>`).join('');
+  }
+  const vendorSel = document.getElementById('vf-vendor');
+  if (vendorSel) {
+    const vendors = getListValues('vendors');
+    const cur = vendorSel.value;
+    vendorSel.innerHTML = '<option value="">— اختر Vendor —</option>' +
+      vendors.map(v => `<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+  }
+}
+
+function getListValues(key) {
+  const fromVisits = key === 'vendors'  ? [...new Set(DB.visits.map(v => v.vendor).filter(Boolean))]
+                   : key === 'branches' ? [...new Set(DB.visits.map(v => v.branch).filter(Boolean))]
+                   :                      [...new Set(DB.products.map(p => p.brand).filter(Boolean))];
+  const custom = DB.lists?.[key] || [];
+  return [...new Set([...custom, ...fromVisits])].sort();
+}
+
 // ── Config ──
 function buildConfig() {
+  renderLists();
   const kb   = getStorageKB();
   const pct  = Math.min(100, Math.round(kb / 5120 * 100)); // 5MB limit
   document.getElementById('storage-used').textContent  = `${kb} KB من 5,120 KB`;
@@ -1471,12 +1817,12 @@ function exportVisitsExcel() {
   const ws = XLSX.utils.json_to_sheet(filteredVisits.map(v => ({
     'المنسق':               v.coordinator   || '',
     'الفرع':                v.branch        || '',
-    'Vendor':               v.vendor        || '',
+    'Brand':               v.brand        || '',
     'Product_Name_EN':      v.productNameEN || '',
     'Quantity':             v.units         || 0,
     'display status':       v.displayStatus || '',
     'يوم الزيارة':         v.visitDay      || '',
-    'Account':              v.account       || '',
+    'vendor':              v.vendor       || '',
     'تاريخ حتى الانتهاء': v.expiryDate    || '',
     'وقت حتى الانتهاء':   v.remaining     || '',
     'Alarm':                v.alarm         || '',
@@ -1509,9 +1855,9 @@ function exportAllExcel() {
   const wb = XLSX.utils.book_new();
   if (DB.visits.length) {
     const ws = XLSX.utils.json_to_sheet(DB.visits.map(v => ({
-      'المنسق': v.coordinator||'', 'الفرع': v.branch||'', 'Vendor': v.vendor||'', 'Product_Name_EN': v.productNameEN||'',
+      'المنسق': v.coordinator||'', 'الفرع': v.branch||'', 'Brand': v.brand||'', 'Product_Name_EN': v.productNameEN||'',
       'Quantity': v.units||0, 'display status': v.displayStatus||'', 'يوم الزيارة': v.visitDay||'',
-      'Account': v.account||'', 'Date': v.date||'', 'Remaining': v.remaining||'', 'Alarm': v.alarm||'', 'الحالة': v.status||''
+      'vendor': v.vendor||'', 'Date': v.date||'', 'Remaining': v.remaining||'', 'Alarm': v.alarm||'', 'الحالة': v.status||''
     })));
     XLSX.utils.book_append_sheet(wb, ws, 'زيارات');
   }
@@ -1643,7 +1989,7 @@ function renderCoordinators() {
   // metrics
   const active   = DB.coordinators.filter(c => c.status === 'نشط').length;
   const inactive = DB.coordinators.filter(c => c.status === 'غير نشط').length;
-  const vendors  = [...new Set(DB.coordinators.map(c => c.vendor).filter(Boolean))].length;
+  const vendors  = [...new Set(DB.coordinators.map(c => c.brand).filter(Boolean))].length;
   document.getElementById('coord-metrics').innerHTML = `
     <div class="metric"><div class="metric-label">إجمالي المنسقين</div><div class="metric-val">${DB.coordinators.length}</div></div>
     <div class="metric"><div class="metric-label">نشط</div><div class="metric-val" style="color:var(--green)">${active}</div></div>
@@ -1669,7 +2015,7 @@ function renderCoordinators() {
           <td style="font-family:monospace;font-size:12px;color:var(--blue-d)">${c.code || '—'}</td>
           <td>${c.area || '—'}</td>
           <td dir="ltr" style="text-align:right">${c.phone || '—'}</td>
-          <td>${c.vendor ? `<span class="badge p">${c.vendor}</span>` : '—'}</td>
+          <td>${c.brand ? `<span class="badge p">${c.brand}</span>` : '—'}</td>
           <td><span class="badge b">${visitCount} زيارة</span></td>
           <td>${badgeHtml(c.status || 'نشط')}</td>
           <td style="white-space:nowrap">
@@ -1702,7 +2048,7 @@ function openCoordForm(idx = -1) {
   // fill vendor datalist from products
   const vendors = [...new Set([
     ...DB.products.map(p => p.brand),
-    ...DB.coordinators.map(c => c.vendor)
+    ...DB.coordinators.map(c => c.brand)
   ].filter(Boolean))].sort();
   document.getElementById('dl-coord-vendors').innerHTML = vendors.map(v => `<option value="${v}">`).join('');
 
@@ -1763,7 +2109,7 @@ function parseCoord(r) {
     code:   r['الكود']      || r['code']   || r['Code']   || '',
     area:   r['المنطقة']    || r['area']   || r['Area']   || '',
     phone:  String(r['رقم الهاتف'] || r['phone'] || r['Phone'] || r['Tel'] || ''),
-    vendor: r['Vendor']     || r['vendor'] || r['Brand']  || '',
+    vendor: r['Brand']     || r['vendor'] || r['Brand']  || '',
     status: r['الحالة']     || r['status'] || r['Status'] || 'نشط',
     notes:  r['ملاحظات']    || r['notes']  || r['Notes']  || ''
   };
@@ -1825,11 +2171,11 @@ function importCoordsFile(file) {
 
 function downloadCoordTemplate() {
   const data = [
-    { 'الاسم':'أحمد خضيري',  'الكود':'COORD-001', 'المنطقة':'مدينة نصر',     'رقم الهاتف':'01012345678', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
-    { 'الاسم':'مروان محسن',   'الكود':'COORD-002', 'المنطقة':'المعادي',       'رقم الهاتف':'01198765432', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
-    { 'الاسم':'هبة رمضان',    'الكود':'COORD-003', 'المنطقة':'العثيم',        'رقم الهاتف':'01156789012', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
-    { 'الاسم':'أحمد دردير',   'الكود':'COORD-004', 'المنطقة':'الحلمية',      'رقم الهاتف':'01234567890', 'Vendor':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
-    { 'الاسم':'نبوة عبدالله', 'الكود':'COORD-005', 'المنطقة':'كارفور',       'رقم الهاتف':'01567890123', 'Vendor':'Spuds', 'الحالة':'غير نشط', 'ملاحظات':'إجازة' },
+    { 'الاسم':'أحمد خضيري',  'الكود':'COORD-001', 'المنطقة':'مدينة نصر',     'رقم الهاتف':'01012345678', 'Brand':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'مروان محسن',   'الكود':'COORD-002', 'المنطقة':'المعادي',       'رقم الهاتف':'01198765432', 'Brand':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'هبة رمضان',    'الكود':'COORD-003', 'المنطقة':'العثيم',        'رقم الهاتف':'01156789012', 'Brand':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'أحمد دردير',   'الكود':'COORD-004', 'المنطقة':'الحلمية',      'رقم الهاتف':'01234567890', 'Brand':'Spuds', 'الحالة':'نشط',     'ملاحظات':'' },
+    { 'الاسم':'نبوة عبدالله', 'الكود':'COORD-005', 'المنطقة':'كارفور',       'رقم الهاتف':'01567890123', 'Brand':'Spuds', 'الحالة':'غير نشط', 'ملاحظات':'إجازة' },
   ];
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [{wch:18},{wch:12},{wch:16},{wch:14},{wch:10},{wch:10},{wch:20}];
@@ -1846,7 +2192,7 @@ function exportCoordsExcel() {
     'الكود':     c.code   || '',
     'المنطقة':   c.area   || '',
     'رقم الهاتف': c.phone || '',
-    'Vendor':    c.vendor || '',
+    'Brand':    c.brand || '',
     'الحالة':    c.status || '',
     'ملاحظات':   c.notes  || ''
   })));
@@ -1868,9 +2214,7 @@ function openVisitForm(idx = -1) {
 
   document.getElementById('vf-title').textContent = isEdit ? '✏️ تعديل الزيارة' : '➕ تسجيل زيارة جديدة';
   document.getElementById('vf-coordinator').value = v?.coordinator || '';
-  document.getElementById('vf-branch').value       = v?.branch     || '';
-  document.getElementById('vf-vendor').value       = v?.vendor     || '';
-  document.getElementById('vf-account').value      = v?.account    || '';
+  // vendor, account & branch selects are populated below after building options
   document.getElementById('vf-visit-day').value    = v?.visitDay   || '';
   document.getElementById('vf-date').value         = v?.date       || new Date().toISOString().slice(0, 10);
   document.getElementById('vf-status').value       = v?.status     || 'مكتملة';
@@ -1883,19 +2227,41 @@ function openVisitForm(idx = -1) {
   const container = document.getElementById('vf-items-container');
   container.innerHTML = '';
   if (isEdit && v) {
-    addVisitItem({ productNameEN: v.productNameEN, units: v.units, displayStatus: v.displayStatus, expiryDate: v.expiryDate, remaining: v.remaining, alarm: v.alarm });
+    addVisitItem({ productNameEN: v.productNameEN, units: v.units, displayStatus: v.displayStatus, mfgDate: v.mfgDate, expiryDate: v.expiryDate, shelfLife: v.shelfLife, remaining: v.remaining, alarm: v.alarm });
   }
   updateItemsEmpty();
 
-  // fill autocomplete datalists
-  const outlets = [...new Set(DB.visits.map(v => v.branch).filter(Boolean))].sort();
-  document.getElementById('dl-outlets').innerHTML = outlets.map(o => `<option value="${o}">`).join('');
+  // fill dropdowns using central lists
+  const branches    = getListValues('branches');
+  const vendorsList = getListValues('vendors');
+  const brandsList  = getListValues('brands');
   const coordinators = [...new Set([...DB.visits.map(v => v.coordinator), ...(DB.coordinators||[]).map(c => c.name)].filter(Boolean))].sort();
+
+  document.getElementById('dl-outlets').innerHTML = branches.map(o => `<option value="${o}">`).join('');
   document.getElementById('dl-coordinators').innerHTML = coordinators.map(c => `<option value="${c}">`).join('');
-  const vendors = [...new Set(DB.visits.map(v => v.vendor).filter(Boolean))].sort();
-  document.getElementById('dl-vendors').innerHTML = vendors.map(v => `<option value="${v}">`).join('');
-  const accounts = [...new Set(DB.visits.map(v => v.account).filter(Boolean))].sort();
-  document.getElementById('dl-accounts').innerHTML = accounts.map(a => `<option value="${a}">`).join('');
+
+  const curBranch  = v?.branch  || '';
+  const curVendor  = v?.vendor  || '';
+  const curBrand   = v?.brand   || '';
+  const curAccount = v?.account || '';
+
+  // Account dropdown
+  const accountsList = [...new Set([...(DB.lists?.accounts||[]), ...DB.visits.map(v=>v.account).filter(Boolean)])].sort();
+  document.getElementById('vf-account').innerHTML =
+    '<option value="">— اختر Account —</option>' +
+    accountsList.map(a => `<option value="${a}"${a===curAccount?' selected':''}>${a}</option>`).join('');
+
+  document.getElementById('vf-branch').innerHTML =
+    '<option value="">— اختر الفرع —</option>' +
+    branches.map(o => `<option value="${o}"${o===curBranch?' selected':''}>${o}</option>`).join('');
+
+  document.getElementById('vf-vendor').innerHTML =
+    '<option value="">— اختر Vendor —</option>' +
+    vendorsList.map(a => `<option value="${a}"${a===curVendor?' selected':''}>${a}</option>`).join('');
+
+  document.getElementById('vf-brand').innerHTML =
+    '<option value="">— اختر Brand —</option>' +
+    brandsList.map(b => `<option value="${b}"${b===curBrand?' selected':''}>${b}</option>`).join('');
 
   document.getElementById('visit-form-overlay').classList.remove('hidden');
   setTimeout(() => document.getElementById('vf-coordinator').focus(), 50);
@@ -1931,42 +2297,83 @@ function addVisitItem(data = {}) {
   const container = document.getElementById('vf-items-container');
   const row = document.createElement('div');
   row.className = 'vf-item-row';
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;border-bottom:1px solid var(--border)';
+  row.style.cssText = 'border-bottom:1px solid var(--border);padding:12px;background:var(--surface)';
 
-  const productOpts = DB.products.length
-    ? DB.products.map(p => `<option value="${p.name}"${p.name === data.productNameEN ? ' selected' : ''}>${p.code ? p.code + ' - ' : ''}${p.name}</option>`).join('')
-    : '';
+  const curVendor   = document.getElementById('vf-brand')?.value || '';
+  const productOpts = buildProductOpts(curVendor, data.productNameEN || '');
+
+  const preRem   = calcRemaining(data.expiryDate);
+  const preShelf = data.shelfLife || calcShelfLife(data.mfgDate, data.expiryDate) || '';
+  const preAlarm = autoAlarm(preRem !== '' ? preRem : (data.remaining || ''));
+  const remColor = preRem < 0 ? 'var(--red)' : preRem < 30 ? 'var(--amber)' : preRem !== '' ? 'var(--green)' : 'var(--txt3)';
 
   row.innerHTML = `
-    <div style="padding:6px 8px;border-left:1px solid var(--border)">
-      <select class="form-select" data-field="productNameEN" style="font-size:12px;padding:5px 7px;width:100%">
+    <!-- Line 1: الصنف + حذف -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <select class="form-select" data-field="productNameEN" style="flex:1;font-size:13px">
         <option value="">اختر صنف...</option>
         ${productOpts}
       </select>
+      <button type="button" class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);flex-shrink:0"
+        onclick="this.closest('.vf-item-row').remove();updateItemsEmpty()">✕ حذف</button>
     </div>
-    <div style="padding:6px 8px;border-left:1px solid var(--border)">
-      <input class="form-input" data-field="units" type="number" min="0" placeholder="0" value="${data.units ?? ''}" style="font-size:12px;padding:5px 7px">
+    <!-- Line 2: الكمية + display status -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">الكمية</div>
+        <input class="form-input" data-field="units" type="number" min="0" placeholder="0" value="${data.units ?? ''}">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">display status</div>
+        <select class="form-select" data-field="displayStatus">
+          <option value="">—</option>
+          <option value="الرف"${data.displayStatus==='الرف'?' selected':''}>الرف</option>
+          <option value="كولر"${data.displayStatus==='كولر'?' selected':''}>كولر</option>
+          <option value="برّاد"${data.displayStatus==='برّاد'?' selected':''}>برّاد</option>
+          <option value="ستاند"${data.displayStatus==='ستاند'?' selected':''}>ستاند</option>
+          <option value="عرض خاص"${data.displayStatus==='عرض خاص'?' selected':''}>عرض خاص</option>
+          <option value="مخزن"${data.displayStatus==='مخزن'?' selected':''}>مخزن</option>
+        </select>
+      </div>
     </div>
-    <div style="padding:6px 8px;border-left:1px solid var(--border)">
-      <input class="form-input" data-field="displayStatus" placeholder="الرف" value="${data.displayStatus || ''}" style="font-size:12px;padding:5px 7px">
+    <!-- Line 3: تاريخ الإنتاج + فترة الصلاحية (يوم) + تاريخ الانتهاء -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">تاريخ الإنتاج</div>
+        <input class="form-input" data-field="mfgDate" type="date" value="${data.mfgDate || ''}"
+          onchange="calcItemDates(this.closest('.vf-item-row'))">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">فترة الصلاحية (يوم)</div>
+        <input class="form-input" data-field="shelfLifeInput" type="number" min="1" placeholder="مثال: 365"
+          value="${preShelf || ''}"
+          onchange="calcItemDates(this.closest('.vf-item-row'))">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">تاريخ الانتهاء</div>
+        <input class="form-input" data-field="expiryDate" type="date" value="${data.expiryDate || ''}"
+          onchange="calcItemDates(this.closest('.vf-item-row'))">
+      </div>
     </div>
-    <div style="padding:6px 8px;border-left:1px solid var(--border)">
-      <input class="form-input" data-field="expiryDate" type="date" value="${data.expiryDate || ''}" style="font-size:12px;padding:5px 7px">
-    </div>
-    <div style="padding:6px 8px;border-left:1px solid var(--border)">
-      <input class="form-input" data-field="remaining" type="number" placeholder="-184" value="${data.remaining ?? ''}" style="font-size:12px;padding:5px 7px">
-    </div>
-    <div style="padding:6px 8px;border-left:1px solid var(--border)">
-      <input class="form-input" data-field="alarm" placeholder="near Expiry" value="${data.alarm || ''}" style="font-size:12px;padding:5px 7px">
-    </div>
-    <div style="padding:6px 8px;display:flex;align-items:center">
-      <button type="button" class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:4px 8px" onclick="this.closest('.vf-item-row').remove();updateItemsEmpty()">✕</button>
+    <!-- Line 4: نتائج الحساب -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;background:var(--bg);border-radius:var(--radius-sm);padding:10px">
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--txt3);margin-bottom:3px">مدة الصلاحية</div>
+        <div data-field="shelfLife" style="font-size:14px;font-weight:700;color:var(--purple-d)">${preShelf !== '' ? preShelf + ' يوم' : '—'}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--txt3);margin-bottom:3px">الوقت الباقي</div>
+        <div data-field="remaining" style="font-size:14px;font-weight:700;color:${remColor}">${preRem !== '' ? preRem + ' يوم' : '—'}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--txt3);margin-bottom:3px">Alarm</div>
+        <div data-field="alarm">${preAlarm ? '<span class="badge ' + (preAlarm==='منتهي'?'r':'a') + '">' + preAlarm + '</span>' : '<span style="color:var(--txt3)">—</span>'}</div>
+      </div>
     </div>`;
 
-  // if a product is already selected via data, set the select value
+  // set product select value if editing
   if (data.productNameEN) {
     const sel = row.querySelector('select[data-field="productNameEN"]');
-    // try exact match first, otherwise leave as freetext option
     if (![...sel.options].some(o => o.value === data.productNameEN)) {
       const opt = document.createElement('option');
       opt.value = data.productNameEN;
@@ -1988,11 +2395,131 @@ function updateItemsEmpty() {
   empty.style.display = container.children.length === 0 ? 'block' : 'none';
 }
 
+// Vendor → filter items product dropdowns
+function onBrandChange() {
+  const vendor = document.getElementById('vf-brand').value;
+  // rebuild all existing item rows' product selects filtered by vendor
+  document.querySelectorAll('#vf-items-container .vf-item-row').forEach(row => {
+    const sel     = row.querySelector('[data-field="productNameEN"]');
+    const curVal  = sel?.value || '';
+    const opts    = buildProductOpts(vendor, curVal);
+    if (sel) sel.innerHTML = `<option value="">اختر صنف...</option>${opts}`;
+  });
+}
+
+// Account → filter branches by accountBranches map
+function onAccountChange() {
+  const account   = document.getElementById('vf-account').value;
+  const curBranch = document.getElementById('vf-branch').value;
+  let branches;
+  if (account && DB.lists?.accountBranches?.[account]?.length) {
+    // use mapped branches
+    branches = [...DB.lists.accountBranches[account]].sort();
+  } else {
+    // fallback: all branches
+    branches = getListValues('branches');
+  }
+  const branchSel = document.getElementById('vf-branch');
+  branchSel.innerHTML =
+    '<option value="">— اختر الفرع —</option>' +
+    branches.map(b => `<option value="${b}"${b === curBranch ? ' selected' : ''}>${b}</option>`).join('');
+}
+
+// Vendor → filter branches from visits
+function onVendorChange() {
+  const vendor    = document.getElementById('vf-vendor').value;
+  const curBranch = document.getElementById('vf-branch').value;
+  const branches  = [...new Set(
+    DB.visits.filter(v => !vendor || v.vendor === vendor).map(v => v.branch).filter(Boolean)
+  )].sort();
+  const branchSel = document.getElementById('vf-branch');
+  if (branches.length) {
+    branchSel.innerHTML =
+      '<option value="">— اختر الفرع —</option>' +
+      branches.map(b => `<option value="${b}"${b === curBranch ? ' selected' : ''}>${b}</option>`).join('');
+  }
+}
+
+// ════ DATE CALC HELPERS ════
+function calcShelfLife(mfg, exp) {
+  if (!mfg || !exp) return '';
+  const days = Math.round((new Date(exp) - new Date(mfg)) / 86400000);
+  return isNaN(days) ? '' : days;
+}
+
+function calcRemaining(exp) {
+  if (!exp) return '';
+  const days = Math.round((new Date(exp) - new Date()) / 86400000);
+  return isNaN(days) ? '' : days;
+}
+
+function autoAlarm(rem) {
+  if (rem === '') return '';
+  if (rem < 0)  return 'منتهي';
+  if (rem < 30) return 'قريب الانتهاء';
+  return '';
+}
+
+function calcItemDates(row) {
+  const mfgEl       = row.querySelector('[data-field="mfgDate"]');
+  const expEl       = row.querySelector('[data-field="expiryDate"]');
+  const shelfInpEl  = row.querySelector('[data-field="shelfLifeInput"]');
+
+  let mfg  = mfgEl?.value  || '';
+  let exp  = expEl?.value  || '';
+  const shelfDays = parseInt(shelfInpEl?.value) || 0;
+
+  // if mfg + shelfDays → auto-fill expiry
+  if (mfg && shelfDays && !exp) {
+    const d = new Date(mfg);
+    d.setDate(d.getDate() + shelfDays);
+    exp = d.toISOString().slice(0, 10);
+    if (expEl) expEl.value = exp;
+  }
+  // if mfg + expiry → auto-fill shelfDays
+  if (mfg && exp && !shelfDays) {
+    const computed = calcShelfLife(mfg, exp);
+    if (computed !== '' && shelfInpEl) shelfInpEl.value = computed;
+  }
+
+  const shelf = calcShelfLife(mfg, exp);
+  const rem   = calcRemaining(exp);
+  const alarm = autoAlarm(rem);
+
+  const shelfEl = row.querySelector('[data-field="shelfLife"]');
+  const remEl   = row.querySelector('[data-field="remaining"]');
+  const alarmEl = row.querySelector('[data-field="alarm"]');
+
+  if (shelfEl) shelfEl.textContent = shelf !== '' ? shelf + ' يوم' : '—';
+
+  if (remEl) {
+    remEl.textContent = rem !== '' ? rem + ' يوم' : '—';
+    remEl.style.color = rem < 0 ? 'var(--red)' : rem < 30 ? 'var(--amber)' : rem !== '' ? 'var(--green)' : 'var(--txt3)';
+  }
+
+  if (alarmEl) {
+    alarmEl.innerHTML = alarm
+      ? `<span class="badge ${alarm === 'منتهي' ? 'r' : 'a'}">${alarm}</span>`
+      : '<span style="color:var(--txt3)">—</span>';
+  }
+}
+
+// helper: build product options filtered by vendor/brand
+function buildProductOpts(vendor, selected = '') {
+  const prods = vendor
+    ? DB.products.filter(p => p.brand === vendor)
+    : DB.products;
+  return prods.map(p =>
+    `<option value="${p.name}"${p.name === selected ? ' selected' : ''}>${p.code ? p.code + ' — ' : ''}${p.name}</option>`
+  ).join('');
+}
+
 function saveVisit() {
   const coordinator = document.getElementById('vf-coordinator').value.trim();
+  const account     = document.getElementById('vf-account').value.trim();
   const branch      = document.getElementById('vf-branch').value.trim();
   const vendor      = document.getElementById('vf-vendor').value.trim();
-  const account     = document.getElementById('vf-account').value.trim();
+  const brand       = document.getElementById('vf-brand').value.trim();
   const visitDay    = parseInt(document.getElementById('vf-visit-day').value) || 0;
   const date        = document.getElementById('vf-date').value.trim();
   const status      = document.getElementById('vf-status').value;
@@ -2005,14 +2532,23 @@ function saveVisit() {
 
   // collect items
   const rows = document.querySelectorAll('#vf-items-container .vf-item-row');
-  const items = [...rows].map(row => ({
-    productNameEN: row.querySelector('[data-field="productNameEN"]')?.value?.trim() || '',
-    units:         parseInt(row.querySelector('[data-field="units"]')?.value) || 0,
-    displayStatus: row.querySelector('[data-field="displayStatus"]')?.value?.trim() || '',
-    expiryDate:    row.querySelector('[data-field="expiryDate"]')?.value?.trim() || '',
-    remaining:     parseInt(row.querySelector('[data-field="remaining"]')?.value) || 0,
-    alarm:         row.querySelector('[data-field="alarm"]')?.value?.trim() || '',
-  })).filter(it => it.productNameEN);
+  const items = [...rows].map(row => {
+    const mfg       = row.querySelector('[data-field="mfgDate"]')?.value?.trim()       || '';
+    const exp       = row.querySelector('[data-field="expiryDate"]')?.value?.trim()    || '';
+    const shelfInp  = parseInt(row.querySelector('[data-field="shelfLifeInput"]')?.value) || 0;
+    const rem       = calcRemaining(exp);
+    const shelf     = calcShelfLife(mfg, exp);
+    return {
+      productNameEN: row.querySelector('[data-field="productNameEN"]')?.value?.trim() || '',
+      units:         parseInt(row.querySelector('[data-field="units"]')?.value) || 0,
+      displayStatus: row.querySelector('[data-field="displayStatus"]')?.value?.trim() || '',
+      mfgDate:       mfg,
+      expiryDate:    exp,
+      shelfLife:     shelf !== '' ? shelf : shelfInp,
+      remaining:     rem   !== '' ? rem   : 0,
+      alarm:         autoAlarm(rem !== '' ? rem : 0),
+    };
+  }).filter(it => it.productNameEN);
 
   if (rows.length > 0 && items.length === 0) {
     errEl.textContent = '⚠️ اختر صنف واحد على الأقل أو احذف الصفوف الفارغة';
@@ -2020,7 +2556,7 @@ function saveVisit() {
     return;
   }
 
-  const header = { coordinator, branch, vendor, account, visitDay, date, status, notes, outlet: branch, area: account };
+  const header = { coordinator, account, branch, vendor, brand, visitDay, date, status, notes, outlet: branch, area: account };
 
   if (_editVisitIdx >= 0) {
     // editing: update single record (keep item fields from first row or blank)
@@ -2046,3 +2582,4 @@ function saveVisit() {
 </script>
 </body>
 </html>
+
