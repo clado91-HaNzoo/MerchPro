@@ -335,6 +335,8 @@ textarea.form-input { resize: vertical; }
         <thead><tr>
           <th>#</th>
           <th>المنسق</th>
+          <th>Account</th>
+          <th>AccountNum</th>
           <th>الفرع</th>
           <th>Brand</th>
           <th>Product_Name_EN</th>
@@ -580,7 +582,6 @@ textarea.form-input { resize: vertical; }
       <button class="btn btn-green" onclick="exportBackup()">⬇ تصدير نسخة احتياطية (JSON)</button>
       <button class="btn" onclick="document.getElementById('restore-input').click()">⬆ استعادة من نسخة احتياطية</button>
       <button class="btn" onclick="exportAllExcel()">📊 تصدير كل البيانات (Excel)</button>
-      <button class="btn btn-red" onclick="confirmClearAll()">🗑️ مسح كل البيانات</button>
     </div>
     <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreBackup(this.files[0])">
   </div>
@@ -621,19 +622,25 @@ textarea.form-input { resize: vertical; }
       </div>
       <div class="form-row" style="margin:0">
         <label class="form-label">الفرع <span style="color:var(--red)">*</span></label>
-        <select class="form-select" id="vf-branch">
+        <select class="form-select" id="vf-branch" onchange="onBranchChange()">
           <option value="">— اختر الفرع —</option>
         </select>
       </div>
     </div>
 
-    <!-- Row 2: Account فقط -->
-    <div style="margin-top:12px">
+    <!-- Row 2: Account + AccountNum -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
       <div class="form-row" style="margin:0">
         <label class="form-label">Account</label>
         <select class="form-select" id="vf-account" onchange="onAccountChange()">
           <option value="">— اختر Account —</option>
         </select>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label class="form-label">Account Number</label>
+        <input class="form-input" id="vf-account-num" readonly
+          style="background:var(--bg);color:var(--purple-d);font-family:monospace;font-weight:600"
+          placeholder="يتملي تلقائياً">
       </div>
     </div>
 
@@ -883,7 +890,7 @@ textarea.form-input { resize: vertical; }
 // ════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════
-let DB = { visits: [], products: [], moves: [], coordinators: [], lists: { vendors: [], branches: [], brands: [], accounts: [], accountBranches: {} } };
+let DB = { visits: [], products: [], moves: [], coordinators: [], lists: { vendors: [], branches: [], brands: [], accounts: [], accountBranches: {}, accountCodes: {}, branchCodes: {} } };
 
 const PAGE_SIZE = 20;
 let visitPage   = 1;
@@ -1097,6 +1104,8 @@ async function changeAdminPass() {
       if (!DB.lists.brands)          DB.lists.brands          = [];
       if (!DB.lists.accounts)        DB.lists.accounts        = [];
       if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
+      if (!DB.lists.accountCodes)    DB.lists.accountCodes    = {};
+      if (!DB.lists.branchCodes)     DB.lists.branchCodes     = {};
       seedBuiltinUsers();
       setBadge('💾 محفوظ محلياً', 'sync-ok');
     } catch (e) {
@@ -1649,7 +1658,7 @@ function buildHome() {
         const visits   = DB.visits.filter(v => v.account === acc).length;
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
           <div>
-            <div style="font-size:13px;font-weight:600">🏬 ${acc}</div>
+            <div style="font-size:13px;font-weight:600">🏬 ${acc} ${DB.lists?.accountCodes?.[acc] ? `<span style="font-size:11px;font-family:monospace;color:var(--txt3)">${DB.lists.accountCodes[acc]}</span>` : ''}</div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
               ${branches.length
                 ? branches.map(b => `<span style="font-size:10px;background:var(--purple-l);color:var(--purple-d);padding:1px 7px;border-radius:99px">${b}</span>`).join('')
@@ -1758,6 +1767,8 @@ function renderVisits() {
         return `<tr>
           <td style="color:var(--txt3);font-size:11px">${startIdx + i + 1}</td>
           <td title="${v.coordinator||''}">${v.coordinator||'—'}</td>
+          <td title="${v.account||''}">${v.account||'—'}</td>
+          <td style="font-family:monospace;font-size:12px;color:var(--blue-d)">${v.accountNum || DB.lists?.branchCodes?.[v.branch] || '—'}</td>
           <td title="${v.branch||''}" style="max-width:160px">${v.branch||'—'}</td>
           <td><span class="badge p">${v.brand||'—'}</span></td>
           <td title="${v.productNameEN||''}" style="max-width:180px">${v.productNameEN||'—'}</td>
@@ -1906,6 +1917,7 @@ function renderLists() {
           <!-- account header -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <span style="font-size:13px;font-weight:700;color:var(--purple-d)">🏬 ${acc}</span>
+            ${DB.lists?.accountCodes?.[acc] ? `<span style="font-size:11px;font-family:monospace;background:var(--bg);padding:2px 8px;border-radius:99px;color:var(--txt2)">${DB.lists.accountCodes[acc]}</span>` : ''}
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:2px 7px;font-size:11px"
               onclick="removeListItem('accounts','${acc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">✕</button>
           </div>
@@ -1969,16 +1981,19 @@ function importAccountsFile(file) {
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
       if (!rows.length) { toast('⚠️ الملف فارغ'); return; }
 
-      if (!DB.lists) DB.lists = { vendors:[], branches:[], brands:[], accounts:[], accountBranches:{} };
-      if (!DB.lists.accounts)       DB.lists.accounts = [];
+      if (!DB.lists) DB.lists = { vendors:[], branches:[], brands:[], accounts:[], accountBranches:{}, accountCodes:{} };
+      if (!DB.lists.accounts)        DB.lists.accounts        = [];
       if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
-      if (!DB.lists.branches)       DB.lists.branches = [];
+      if (!DB.lists.accountCodes)    DB.lists.accountCodes    = {};
+      if (!DB.lists.branchCodes)     DB.lists.branchCodes     = {};
+      if (!DB.lists.branches)        DB.lists.branches        = [];
 
-      let addedAcc = 0, addedBranch = 0, linked = 0;
+      let addedAcc = 0, addedBranch = 0, linked = 0, updatedCode = 0;
 
       rows.forEach(r => {
-        const acc    = String(r['Account'] || r['account'] || r['الاسم'] || '').trim();
-        const branch = String(r['Branch']  || r['branch']  || r['الفرع'] || '').trim();
+        const acc    = String(r['السلسله'] || r['Account'] || r['account'] || r['اسم الاكونت'] || '').trim();
+        const branch = String(r['name']    || r['Branch']  || r['branch']  || r['الفرع']       || '').trim();
+        const code   = String(r['AccountNum'] || r['Code'] || r['code']    || r['الكود']       || '').trim();
         if (!acc) return;
 
         // add account
@@ -1986,13 +2001,17 @@ function importAccountsFile(file) {
           DB.lists.accounts.push(acc);
           addedAcc++;
         }
-        // add branch
+        // save branch code (AccountNum per branch)
+        if (code && branch && DB.lists.branchCodes[branch] !== code) {
+          DB.lists.branchCodes[branch] = code;
+          updatedCode++;
+        }
+        // add branch + link
         if (branch) {
           if (!DB.lists.branches.includes(branch)) {
             DB.lists.branches.push(branch);
             addedBranch++;
           }
-          // link branch to account
           if (!DB.lists.accountBranches[acc]) DB.lists.accountBranches[acc] = [];
           if (!DB.lists.accountBranches[acc].includes(branch)) {
             DB.lists.accountBranches[acc].push(branch);
@@ -2009,7 +2028,7 @@ function importAccountsFile(file) {
       msgEl.style.display = 'block';
       msgEl.style.background = 'var(--green-l)';
       msgEl.style.color = 'var(--green-d)';
-      msgEl.textContent = `✅ ${addedAcc} account جديد · ${addedBranch} فرع جديد · ${linked} ربط`;
+      msgEl.textContent = `✅ ${addedAcc} account جديد · ${addedBranch} فرع جديد · ${linked} ربط · ${updatedCode} كود`;
       setTimeout(() => msgEl.style.display = 'none', 4000);
       toast(`✅ تم استيراد ${addedAcc} account`);
     } catch {
@@ -2080,16 +2099,15 @@ function downloadBranchTemplate() {
 
 function downloadAccountTemplate() {
   const data = [
-    { 'Account':'سبينس',                  'Branch':'سبينس مدينة نصر' },
-    { 'Account':'سبينس',                  'Branch':'سبينس انبوكس' },
-    { 'Account':'سبينس',                  'Branch':'سبينس الزمالك' },
-    { 'Account':'كارفور',                 'Branch':'كارفور المعادي' },
-    { 'Account':'كارفور',                 'Branch':'كارفور مدينة نصر' },
-    { 'Account':'أسواق عبد الله العثيم', 'Branch':'اسواق عبدالله العثيم _ العشرين' },
-    { 'Account':'أسواق عبد الله العثيم', 'Branch':'اسواق عبدالله العثيم _ ميدان الساعه' },
+    { 'السلسله':'طلبات',  'AccountNum':'ECT0022', 'name':'Talabat Fount Mall' },
+    { 'السلسله':'طلبات',  'AccountNum':'ECT0020', 'name':'Talabat Hadayek El Kobba' },
+    { 'السلسله':'طلبات',  'AccountNum':'ECT0021', 'name':'Talabat Sheikh Zayed' },
+    { 'السلسله':'طلبات',  'AccountNum':'ECT0025', 'name':'Talabat Tanta' },
+    { 'السلسله':'سبينس',  'AccountNum':'SP0001',  'name':'Spinneys City Stars' },
+    { 'السلسله':'كارفور', 'AccountNum':'CF0001',  'name':'Carrefour Maadi' },
   ];
   const ws = XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [{ wch: 28 }, { wch: 36 }];
+  ws['!cols'] = [{ wch: 16 }, { wch: 14 }, { wch: 30 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Accounts');
   XLSX.writeFile(wb, 'Accounts_Template.xlsx');
@@ -2300,6 +2318,8 @@ function exportVisitsExcel() {
   if (!filteredVisits.length) { toast('لا توجد بيانات للتصدير'); return; }
   const ws = XLSX.utils.json_to_sheet(filteredVisits.map(v => ({
     'المنسق':               v.coordinator   || '',
+    'Account':              v.account       || '',
+    'AccountNum':           v.accountNum    || DB.lists?.branchCodes?.[v.branch] || '',
     'الفرع':                v.branch        || '',
     'Brand':               v.brand        || '',
     'Product_Name_EN':      v.productNameEN || '',
@@ -2392,6 +2412,36 @@ function restoreBackup(file) {
     document.getElementById('restore-input').value = '';
   };
   reader.readAsText(file);
+}
+
+function confirmClearVisits() {
+  const count = DB.visits.length;
+  showModal('مسح الزيارات',
+    `⚠️ سيتم حذف كل الزيارات (${count} زيارة). المنتجات والمنسقين والإعدادات ستبقى.`,
+    async () => {
+      DB.visits = [];
+      // force save locally
+      try {
+        localStorage.setItem('merchpro_db', JSON.stringify(DB));
+      } catch(e) {}
+      setBadge('💾 محفوظ محلياً', 'sync-ok');
+      markDirty();
+      // invalidate all caches
+      Object.keys(_tabVersion).forEach(k => delete _tabVersion[k]);
+      _listsVersion = -1;
+      // push to Firebase immediately to overwrite cloud data
+      try {
+        await fetch(FB_URL + '.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(DB)
+        });
+        setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+      } catch(e) {}
+      buildConfig();
+      toast(`✅ تم مسح ${count} زيارة`);
+    }
+  );
 }
 
 function confirmClearAll() {
@@ -2772,6 +2822,10 @@ function openVisitForm(idx = -1) {
     '<option value="">— اختر الفرع —</option>' +
     branches.map(o => `<option value="${o}"${o===curBranch?' selected':''}>${o}</option>`).join('');
 
+  // auto-fill AccountNum from branchCodes
+  const curAccountNum = v?.accountNum || DB.lists?.branchCodes?.[curBranch] || '';
+  document.getElementById('vf-account-num').value = curAccountNum;
+
   document.getElementById('vf-vendor').innerHTML =
     '<option value="">— اختر Vendor —</option>' +
     vendorsList.map(a => `<option value="${a}"${a===curVendor?' selected':''}>${a}</option>`).join('');
@@ -2994,6 +3048,13 @@ function onItemBrandChange(row) {
 }
 
 // Account → filter branches by accountBranches map
+function onBranchChange() {
+  const branch    = document.getElementById('vf-branch').value;
+  const code      = DB.lists?.branchCodes?.[branch] || '';
+  const numEl     = document.getElementById('vf-account-num');
+  if (numEl) numEl.value = code;
+}
+
 function onAccountChange() {
   const account   = document.getElementById('vf-account').value;
   const curBranch = document.getElementById('vf-branch').value;
@@ -3107,6 +3168,7 @@ function saveVisit() {
   const coordinator = document.getElementById('vf-coordinator').value.trim();
   const account     = document.getElementById('vf-account').value.trim();
   const branch      = document.getElementById('vf-branch').value.trim();
+  const accountNum  = document.getElementById('vf-account-num').value.trim() || DB.lists?.branchCodes?.[branch] || '';
   const vendor      = document.getElementById('vf-vendor').value.trim();
   const brand       = document.getElementById('vf-brand').value.trim();
   const visitDay    = parseInt(document.getElementById('vf-visit-day').value) || 0;
@@ -3145,7 +3207,7 @@ function saveVisit() {
     return;
   }
 
-  const header = { coordinator, account, branch, vendor, brand, visitDay, date, status, notes, outlet: branch, area: account };
+  const header = { coordinator, account, accountNum, branch, vendor, brand, visitDay, date, status, notes, outlet: branch, area: account };
 
   if (_editVisitIdx >= 0) {
     const it = items[0] || {};
