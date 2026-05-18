@@ -327,7 +327,7 @@ textarea.form-input { resize: vertical; }
     <input class="form-input" id="v-date-from" type="date" onchange="renderVisits()" style="max-width:155px">
     <input class="form-input" id="v-date-to"   type="date" onchange="renderVisits()" style="max-width:155px">
     <button class="btn btn-primary btn-sm" onclick="openVisitForm()">➕ زيارة جديدة</button>
-    <button class="btn btn-sm" onclick="exportVisitsExcel()">⬇ تصدير</button>
+    <button class="btn btn-sm" id="btn-export-visits" onclick="exportVisitsExcel()">⬇ تصدير</button>
   </div>
   <div class="card" style="padding:0">
     <div class="tbl-wrap">
@@ -440,9 +440,11 @@ textarea.form-input { resize: vertical; }
       <option>نشط</option>
       <option>غير نشط</option>
     </select>
-    <button class="btn btn-primary btn-sm" onclick="openCoordForm()">➕ منسق جديد</button>
-    <button class="btn btn-sm" onclick="document.getElementById('coord-import-input').click()">📥 استيراد Excel</button>
-    <button class="btn btn-sm" onclick="downloadCoordTemplate()">⬇ قالب Excel</button>
+    <span id="coord-manage-btns">
+      <button class="btn btn-primary btn-sm" onclick="openCoordForm()">➕ منسق جديد</button>
+      <button class="btn btn-sm" onclick="document.getElementById('coord-import-input').click()">📥 استيراد Excel</button>
+      <button class="btn btn-sm" onclick="downloadCoordTemplate()">⬇ قالب Excel</button>
+    </span>
     <button class="btn btn-sm" onclick="exportCoordsExcel()">⬆ تصدير</button>
     <input type="file" id="coord-import-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCoordsFile(this.files[0])">
   </div>
@@ -625,27 +627,19 @@ textarea.form-input { resize: vertical; }
       </div>
     </div>
 
-    <!-- Row 2: Account + Vendor + Brand -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+    <!-- Row 2: Account فقط -->
+    <div style="margin-top:12px">
       <div class="form-row" style="margin:0">
         <label class="form-label">Account</label>
         <select class="form-select" id="vf-account" onchange="onAccountChange()">
           <option value="">— اختر Account —</option>
         </select>
       </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">Brand</label>
-        <select class="form-select" id="vf-brand" onchange="onBrandChange()">
-          <option value="">— اختر Brand —</option>
-        </select>
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">Vendor</label>
-        <select class="form-select" id="vf-vendor" onchange="onVendorChange()">
-          <option value="">— اختر Vendor —</option>
-        </select>
-      </div>
     </div>
+
+    <!-- hidden selects للـ Brand و Vendor — بيتملوا من الـ items -->
+    <select id="vf-brand"  style="display:none" onchange="onBrandChange()"></select>
+    <select id="vf-vendor" style="display:none" onchange="onVendorChange()"></select>
 
     <!-- Row 3: Date + يوم الزيارة + الحالة + ملاحظات -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:12px;margin-top:12px">
@@ -977,6 +971,10 @@ function onLoginSuccess() {
   document.getElementById('login-pass').value = '';
   document.getElementById('topbar-username').textContent = currentUser.name;
   document.getElementById('topbar-avatar').textContent   = currentUser.name.charAt(0);
+  // reset all caches so every user gets a fresh render
+  Object.keys(_tabVersion).forEach(k => delete _tabVersion[k]);
+  _listsVersion = -1;
+  _permsVersion = -1;
   applyRoleAccess();
   toast(`✅ أهلاً ${currentUser.name}`);
 }
@@ -995,10 +993,21 @@ function applyRoleAccess() {
     'config':      isFullAccess,
   };
   document.querySelectorAll('.nav-item').forEach(item => {
-    const fn = item.getAttribute('onclick') || '';
+    const fn  = item.getAttribute('onclick') || '';
     const tab = fn.match(/switchTab\('(\w+)'/)?.[1];
-    if (tab) item.style.display = navMap[tab] === false ? 'none' : '';
+    if (!tab) return;
+    const allowed = tab in navMap ? navMap[tab] : isFullAccess;
+    item.style.display = allowed ? '' : 'none';
   });
+
+  // hide export button for coordinator
+  const exportBtn = document.getElementById('btn-export-visits');
+  if (exportBtn) exportBtn.style.display = isFullAccess ? '' : 'none';
+
+  // hide coordinator manage buttons for non admin/martina
+  const coordManage = document.getElementById('coord-manage-btns');
+  if (coordManage) coordManage.style.display = canManageUsers() ? '' : 'none';
+
 
   // if coordinator → auto open visits tab
   if (!isFullAccess) {
@@ -1011,6 +1020,10 @@ function applyRoleAccess() {
 function doLogout() {
   sessionStorage.removeItem('mp_user');
   currentUser = null;
+  // clear all caches
+  Object.keys(_tabVersion).forEach(k => delete _tabVersion[k]);
+  _listsVersion = -1;
+  _permsVersion = -1;
   // restore all nav tabs
   document.querySelectorAll('.nav-item').forEach(el => el.style.display = '');
   document.getElementById('login-screen').style.display = 'flex';
@@ -2175,10 +2188,11 @@ function renderPermissions() {
   const list = document.getElementById('permissions-list');
   if (!card || !list) return;
 
-  // show only for admin
-  const isAdmin = currentUser?.role === 'admin';
-  card.style.display = isAdmin ? 'block' : 'none';
-  if (!isAdmin) return;
+  // show for admin + martina only
+  const canManage = currentUser?.role === 'admin' ||
+                    currentUser?.name?.toLowerCase() === 'martina';
+  card.style.display = canManage ? 'block' : 'none';
+  if (!canManage) return;
 
   const coords = DB.coordinators || [];
   if (!coords.length) {
@@ -2186,18 +2200,24 @@ function renderPermissions() {
     return;
   }
 
+  const canChangeRole = currentUser?.role === 'admin' ||
+                        currentUser?.name?.toLowerCase() === 'martina';
+
   list.innerHTML = coords.map((c, idx) => `
     <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm)">
       <div>
         <div style="font-size:13px;font-weight:600">${c.name}</div>
         <div style="font-size:11px;color:var(--txt3)">${c.area||''} ${c.phone ? '· '+c.phone : ''}</div>
       </div>
-      <!-- role selector -->
-      <select class="form-select" style="font-size:12px;width:140px"
-        onchange="changeUserRole(${idx}, this.value)">
-        <option value="coordinator" ${(c.role||'coordinator')==='coordinator'?'selected':''}>👤 منسق</option>
-        <option value="supervisor"  ${c.role==='supervisor'?'selected':''}>🔑 مشرف</option>
-      </select>
+      <!-- role selector — فقط admin و martina -->
+      ${canChangeRole
+        ? `<select class="form-select" style="font-size:12px;width:140px"
+            onchange="changeUserRole(${idx}, this.value)">
+            <option value="coordinator" ${(c.role||'coordinator')==='coordinator'?'selected':''}>👤 منسق</option>
+            <option value="supervisor"  ${c.role==='supervisor'?'selected':''}>🔑 مشرف</option>
+          </select>`
+        : `<span class="badge ${c.role==='supervisor'?'g':'b'}" style="width:110px;justify-content:center">${c.role==='supervisor'?'🔑 مشرف':'👤 منسق'}</span>`
+      }
       <!-- status -->
       <select class="form-select" style="font-size:12px;width:110px"
         onchange="changeUserStatus(${idx}, this.value)">
@@ -2210,8 +2230,12 @@ function renderPermissions() {
 }
 
 function changeUserRole(idx, role) {
+  const canChangeRole = currentUser?.role === 'admin' ||
+                        currentUser?.name?.toLowerCase() === 'martina';
+  if (!canChangeRole) { toast('🚫 ليس لديك صلاحية تغيير الأدوار'); return; }
   if (!DB.coordinators[idx]) return;
   DB.coordinators[idx].role = role;
+  _permsVersion = -1;
   saveLocal();
   renderPermissions();
   renderCoordinators();
@@ -2491,8 +2515,10 @@ function renderCoordinators() {
           <td><span class="badge b">${visitCount} زيارة</span></td>
           <td>${badgeHtml(c.status || 'نشط')}</td>
           <td style="white-space:nowrap">
-            <button class="btn btn-sm" onclick="openCoordForm(${dbIdx})" title="تعديل">✏️</button>
-            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l)" onclick="deleteCoord(${dbIdx})" title="حذف">🗑</button>
+            ${canManageUsers() ? `
+              <button class="btn btn-sm" onclick="openCoordForm(${dbIdx})" title="تعديل">✏️</button>
+              <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l)" onclick="deleteCoord(${dbIdx})" title="حذف">🗑</button>
+            ` : ''}
           </td>
         </tr>`;
       }).join('')
@@ -2502,7 +2528,13 @@ function renderCoordinators() {
   renderPagination('coords-pagination', pages, coordPage, p => { coordPage = p; renderCoordinators(); });
 }
 
+function canManageUsers() {
+  return currentUser?.role === 'admin' ||
+         currentUser?.name?.toLowerCase() === 'martina';
+}
+
 function openCoordForm(idx = -1) {
+  if (!canManageUsers()) { toast('🚫 ليس لديك صلاحية تعديل المستخدمين'); return; }
   _editCoordIdx = idx;
   const isEdit = idx >= 0;
   const c = isEdit ? DB.coordinators[idx] : null;
@@ -2842,11 +2874,9 @@ function addVisitItem(data = {}) {
           <select class="form-select" data-field="displayStatus" style="font-size:12px">
             <option value="">—</option>
             <option value="الرف"${data.displayStatus==='الرف'?' selected':''}>الرف</option>
-            <option value="كولر"${data.displayStatus==='كولر'?' selected':''}>كولر</option>
-            <option value="برّاد"${data.displayStatus==='برّاد'?' selected':''}>برّاد</option>
-            <option value="ستاند"${data.displayStatus==='ستاند'?' selected':''}>ستاند</option>
-            <option value="عرض خاص"${data.displayStatus==='عرض خاص'?' selected':''}>عرض خاص</option>
-            <option value="مخزن"${data.displayStatus==='مخزن'?' selected':''}>مخزن</option>
+            <option value="المخزن الرئيسي"${data.displayStatus==='المخزن الرئيسي'?' selected':''}>المخزن الرئيسي</option>
+            <option value="تحويل من فرع"${data.displayStatus==='تحويل من فرع'?' selected':''}>تحويل من فرع</option>
+            <option value="مخزن الفرع"${data.displayStatus==='مخزن الفرع'?' selected':''}>مخزن الفرع</option>
           </select>
         </div>
       </div>
