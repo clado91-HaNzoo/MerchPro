@@ -141,10 +141,50 @@ textarea.form-input { resize: vertical; }
 .modal { background: var(--surface); border-radius: var(--radius); padding: 24px; max-width: 480px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
 .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9000;
+}
+.login-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 36px 32px; width: 100%; max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+.login-logo { font-size: 28px; font-weight: 700; color: var(--purple); text-align: center; margin-bottom: 6px; }
+.login-sub  { font-size: 13px; color: var(--txt2); text-align: center; margin-bottom: 28px; }
+.login-err  { background: var(--red-l); color: var(--red); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px; margin-bottom: 14px; display: none; }
 </style>
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- ═══════════ LOGIN SCREEN ═══════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">📦 MerchPro</div>
+    <div class="login-sub">سجّل دخولك للمتابعة</div>
+    <div class="login-err" id="login-err">الاسم أو كلمة المرور غير صحيحة</div>
+    <div class="form-row">
+      <label class="form-label">اسم المنسق</label>
+      <input class="form-input" id="login-user" placeholder="مثال: أحمد خضيري" autocomplete="off"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    </div>
+    <div class="form-row">
+      <label class="form-label">كلمة المرور</label>
+      <div style="position:relative">
+        <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()" style="padding-left:36px">
+        <span onclick="togglePassVis()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;color:var(--txt3)">👁</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;padding:10px" onclick="doLogin()">
+      دخول
+    </button>
+  </div>
+</div>
 
 <div class="app">
 
@@ -154,7 +194,9 @@ textarea.form-input { resize: vertical; }
   <div class="topbar-right">
     <span class="sync-badge sync-cfg" id="sync-badge">📂 لا توجد بيانات</span>
     <button class="btn btn-sm" id="topbar-sync-btn" onclick="fbPush()" title="رفع للسحابة" style="padding:4px 10px;font-size:12px;display:none">☁️</button>
-    <div class="avatar">أد</div>
+    <span id="topbar-username" style="font-size:12px;color:var(--txt2)"></span>
+    <button class="btn btn-sm" onclick="doLogout()" title="تسجيل خروج" style="padding:4px 10px;font-size:12px">خروج</button>
+    <div class="avatar" id="topbar-avatar">—</div>
   </div>
 </div>
 
@@ -239,25 +281,42 @@ textarea.form-input { resize: vertical; }
 
 <!-- ═══════════════ TAB: HOME ═══════════════ -->
 <div class="content hidden" id="tab-home">
+
+  <!-- Row 1: visits metrics -->
   <div class="grid4" id="home-metrics">
     <div class="metric"><div class="metric-label">جارٍ التحميل...</div><div class="metric-val">—</div></div>
   </div>
+
+  <!-- Row 2: users + accounts -->
+  <div class="grid2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-title">👥 المستخدمين</div>
+      <div id="home-users"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏬 Accounts والفروع</div>
+      <div id="home-accounts"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: products per vendor + recent visits -->
   <div class="grid2">
+    <div class="card">
+      <div class="card-title">📦 المنتجات لكل Vendor</div>
+      <div id="home-products-vendor"></div>
+    </div>
     <div class="card">
       <div class="card-title">📋 آخر الزيارات</div>
       <div id="recent-visits"></div>
     </div>
-    <div class="card">
-      <div class="card-title">📊 أداء النقاط</div>
-      <div id="outlet-perf"></div>
-    </div>
   </div>
+
 </div>
 
 <!-- ═══════════════ TAB: VISITS ═══════════════ -->
 <div class="content hidden" id="tab-visits">
   <div class="filter-bar">
-    <input class="form-input" id="v-search" placeholder="بحث بالمنسق أو الفرع أو Vendor..." oninput="renderVisits()">
+    <input class="form-input" id="v-search" placeholder="بحث بالمنسق أو الفرع أو Vendor..." oninput="debounce(renderVisits, 200)()">
     <select class="form-select" id="v-brand" onchange="renderVisits()" style="max-width:140px">
       <option value="">كل الـ Brands</option>
     </select>
@@ -301,7 +360,7 @@ textarea.form-input { resize: vertical; }
 <!-- ═══════════════ TAB: PRODUCTS ═══════════════ -->
 <div class="content hidden" id="tab-products">
   <div class="filter-bar">
-    <input class="form-input" id="p-search" placeholder="بحث بـ Brand أو Code أو Item..." oninput="renderProducts()">
+    <input class="form-input" id="p-search" placeholder="بحث بـ Brand أو Code أو Item..." oninput="debounce(renderProducts, 200)()">
     <select class="form-select" id="p-brand" onchange="renderProducts()" style="max-width:160px">
       <option value="">كل الـ Brands</option>
     </select>
@@ -375,7 +434,7 @@ textarea.form-input { resize: vertical; }
 <!-- ═══════════════ TAB: COORDINATORS ═══════════════ -->
 <div class="content hidden" id="tab-coordinators">
   <div class="filter-bar">
-    <input class="form-input" id="c-search" placeholder="بحث بالاسم أو المنطقة أو الهاتف..." oninput="renderCoordinators()">
+    <input class="form-input" id="c-search" placeholder="بحث بالاسم أو المنطقة أو الهاتف..." oninput="debounce(renderCoordinators, 200)()">
     <select class="form-select" id="c-status" onchange="renderCoordinators()" style="max-width:150px">
       <option value="">كل الحالات</option>
       <option>نشط</option>
@@ -407,6 +466,7 @@ textarea.form-input { resize: vertical; }
           <th>المنطقة</th>
           <th>رقم الهاتف</th>
           <th>Brand</th>
+          <th>الدور</th>
           <th>عدد الزيارات</th>
           <th>الحالة</th>
           <th></th>
@@ -489,6 +549,29 @@ textarea.form-input { resize: vertical; }
     <div style="font-size:13px;color:var(--txt2);margin-bottom:14px" id="storage-counts"></div>
   </div>
 
+  <!-- إدارة صلاحيات المستخدمين — للـ admin فقط -->
+  <div class="card" id="card-permissions" style="display:none">
+    <div class="card-title">👥 إدارة صلاحيات المستخدمين</div>
+    <div id="permissions-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔐 حساب Admin</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:10px">Username: <strong>admin</strong> &nbsp;·&nbsp; كلمة المرور: <strong>147852</strong></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px">كلمة المرور الجديدة</div>
+        <input class="form-input" id="admin-new-pass" type="password" placeholder="••••••••" style="width:180px">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px">تأكيد كلمة المرور</div>
+        <input class="form-input" id="admin-confirm-pass" type="password" placeholder="••••••••" style="width:180px">
+      </div>
+      <button class="btn btn-primary" onclick="changeAdminPass()">تغيير</button>
+    </div>
+    <div id="admin-pass-msg" style="display:none;margin-top:8px;font-size:12px"></div>
+  </div>
+
   <div class="card">
     <div class="card-title">🗂️ إدارة البيانات</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -568,11 +651,12 @@ textarea.form-input { resize: vertical; }
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:12px;margin-top:12px">
       <div class="form-row" style="margin:0">
         <label class="form-label">Date <span style="color:var(--red)">*</span></label>
-        <input class="form-input" id="vf-date" type="date">
+        <input class="form-input" id="vf-date" type="date"
+          onchange="const d=new Date(this.value);if(!isNaN(d))document.getElementById('vf-visit-day').value=d.getDate()">
       </div>
       <div class="form-row" style="margin:0">
         <label class="form-label">يوم الزيارة</label>
-        <input class="form-input" id="vf-visit-day" type="number" min="1" max="31" placeholder="22">
+        <input class="form-input" id="vf-visit-day" type="number" min="1" max="31" placeholder="22" readonly style="background:var(--bg);color:var(--txt2)">
       </div>
       <div class="form-row" style="margin:0">
         <label class="form-label">الحالة</label>
@@ -591,11 +675,14 @@ textarea.form-input { resize: vertical; }
 
     <!-- Items Section -->
     <div style="margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border)">
-        <span style="font-size:13px;font-weight:600">📦 الأصناف</span>
-        <button class="btn btn-primary btn-sm" type="button" onclick="addVisitItem()">➕ إضافة صنف</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10">
+        <span style="font-size:13px;font-weight:600">📦 الأصناف &nbsp;<span id="vf-items-count" style="font-size:11px;font-weight:400;color:var(--txt3)">0 / 50</span></span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" type="button" onclick="collapseAllItems()" title="طي الكل">⬆ طي الكل</button>
+          <button class="btn btn-primary btn-sm" type="button" onclick="addVisitItem()">➕ إضافة صنف</button>
+        </div>
       </div>
-      <div id="vf-items-container" style="display:flex;flex-direction:column;gap:0"></div>
+      <div id="vf-items-container" style="display:flex;flex-direction:column;gap:0;max-height:420px;overflow-y:auto"></div>
       <div id="vf-items-empty" style="padding:20px;text-align:center;color:var(--txt3);font-size:13px">لا توجد أصناف — اضغط ➕ لإضافة صنف</div>
     </div>
 
@@ -742,6 +829,16 @@ textarea.form-input { resize: vertical; }
         <datalist id="dl-coord-vendors"></datalist>
       </div>
       <div class="form-row" style="margin:0">
+        <label class="form-label">الدور <span style="color:var(--red)">*</span></label>
+        <select class="form-select" id="cf-role">
+          <option value="coordinator">منسق — زياراته فقط</option>
+          <option value="supervisor">مشرف — كل البيانات</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-row" style="margin:0">
         <label class="form-label">الحالة</label>
         <select class="form-select" id="cf-status">
           <option>نشط</option>
@@ -753,6 +850,18 @@ textarea.form-input { resize: vertical; }
     <div class="form-row" style="margin-top:12px;margin-bottom:0">
       <label class="form-label">ملاحظات</label>
       <textarea class="form-input" id="cf-notes" rows="2" placeholder="أي ملاحظات..." style="resize:vertical"></textarea>
+    </div>
+
+    <!-- Login credentials -->
+    <div style="margin-top:14px;padding:12px;background:var(--purple-l);border-radius:var(--radius-sm)">
+      <div style="font-size:12px;font-weight:600;color:var(--purple-d);margin-bottom:10px">🔐 كلمة المرور <span style="font-weight:400;color:var(--purple-d)">(الافتراضية: 123)</span></div>
+      <div class="form-row" style="margin:0">
+        <div style="position:relative;max-width:220px">
+          <input class="form-input" id="cf-password" type="password" placeholder="اتركها فارغة = 123" style="padding-left:34px">
+          <span onclick="toggleCfPass()" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:13px;color:var(--txt3)">👁</span>
+        </div>
+        <div id="cf-pass-hint" style="font-size:10px;color:var(--txt3);margin-top:4px">الدخول بـ: اسم المنسق + كلمة المرور</div>
+      </div>
     </div>
 
     <div id="cf-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-l);border-radius:var(--radius-sm);font-size:12px;color:var(--red)"></div>
@@ -790,6 +899,177 @@ let stockPage   = 1;
 let rawSheets = {};
 
 // ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+const ADMIN_USER = 'admin';
+const ADMIN_PASS_HASH = '0729563253bc11cb72714d61132adfe7ba2346b581b02546c9ac4a65fc0c02d8'; // 147852
+
+let currentUser = null; // { username, name, role: 'admin'|'coordinator', coordIdx }
+
+// built-in users (always exist, managed here not in coordinators UI)
+const BUILTIN_USERS = [
+  { name: 'martina', passwordHash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'supervisor', status: 'نشط' },
+];
+
+function seedBuiltinUsers() {
+  if (!DB.coordinators) DB.coordinators = [];
+  BUILTIN_USERS.forEach(u => {
+    const exists = DB.coordinators.some(c => c.name.toLowerCase() === u.name.toLowerCase());
+    if (!exists) DB.coordinators.push({ ...u, code: '', area: '', phone: '', vendor: '', notes: '' });
+  });
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim().toLowerCase();
+  const password = document.getElementById('login-pass').value;
+  const errEl    = document.getElementById('login-err');
+  errEl.style.display = 'none';
+
+  if (!username || !password) { errEl.style.display = 'block'; errEl.textContent = 'أدخل اسم المستخدم وكلمة المرور'; return; }
+
+  const hash = await sha256(password);
+
+  // check admin (use custom hash if set, else default)
+  const adminHash = DB.settings?.adminHash || ADMIN_PASS_HASH;
+  if (username === ADMIN_USER && hash === adminHash) {
+    currentUser = { username: 'admin', name: 'المدير', role: 'admin' };
+    onLoginSuccess();
+    return;
+  }
+
+  // check coordinators — login by name
+  const DEFAULT_PASS_HASH = 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3'; // 123
+  const coords = DB.coordinators || [];
+  const idx = coords.findIndex(c => {
+    const nameMatch = (c.name||'').toLowerCase() === username;
+    const passOk    = c.passwordHash
+      ? c.passwordHash === hash
+      : hash === DEFAULT_PASS_HASH;
+    return nameMatch && passOk;
+  });
+  if (idx >= 0) {
+    const c = coords[idx];
+    if (c.status === 'غير نشط') {
+      errEl.style.display = 'block';
+      errEl.textContent   = '🔴 هذا الحساب معطل — تواصل مع الـ Admin';
+      return;
+    }
+    const role = c.role === 'supervisor' ? 'supervisor' : 'coordinator';
+    currentUser = { username: c.name, name: c.name, role, coordIdx: idx };
+    onLoginSuccess();
+    return;
+  }
+
+  errEl.style.display = 'block';
+  errEl.textContent   = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+  document.getElementById('login-pass').value = '';
+}
+
+function onLoginSuccess() {
+  sessionStorage.setItem('mp_user', JSON.stringify(currentUser));
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('topbar-username').textContent = currentUser.name;
+  document.getElementById('topbar-avatar').textContent   = currentUser.name.charAt(0);
+  applyRoleAccess();
+  toast(`✅ أهلاً ${currentUser.name}`);
+}
+
+function applyRoleAccess() {
+  const role = currentUser?.role || 'coordinator';
+  const isFullAccess = role === 'admin' || role === 'supervisor';
+
+  // nav tabs visibility
+  const navMap = {
+    'home':        isFullAccess,
+    'visits':      true,           // everyone
+    'products':    isFullAccess,
+    'stock':       isFullAccess,
+    'coordinators':isFullAccess,
+    'config':      isFullAccess,
+  };
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const fn = item.getAttribute('onclick') || '';
+    const tab = fn.match(/switchTab\('(\w+)'/)?.[1];
+    if (tab) item.style.display = navMap[tab] === false ? 'none' : '';
+  });
+
+  // if coordinator → auto open visits tab
+  if (!isFullAccess) {
+    const visitsNav = [...document.querySelectorAll('.nav-item')]
+      .find(el => (el.getAttribute('onclick')||'').includes("'visits'"));
+    switchTab('visits', visitsNav);
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('mp_user');
+  currentUser = null;
+  // restore all nav tabs
+  document.querySelectorAll('.nav-item').forEach(el => el.style.display = '');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('topbar-username').textContent = '';
+  document.getElementById('topbar-avatar').textContent   = '—';
+}
+
+
+function togglePassVis() {
+  const inp = document.getElementById('login-pass');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function toggleCfPass() {
+  const inp = document.getElementById('cf-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function changeAdminPass() {
+  const np  = document.getElementById('admin-new-pass').value;
+  const cp  = document.getElementById('admin-confirm-pass').value;
+  const msg = document.getElementById('admin-pass-msg');
+  if (!np) { showMsg('⚠️ أدخل كلمة المرور الجديدة', 'r'); return; }
+  if (np !== cp) { showMsg('⚠️ كلمتا المرور غير متطابقتين', 'r'); return; }
+  if (np.length < 6) { showMsg('⚠️ كلمة المرور قصيرة — 6 أحرف على الأقل', 'r'); return; }
+
+  const hash = await sha256(np);
+  // store in DB.adminHash
+  if (!DB.settings) DB.settings = {};
+  DB.settings.adminHash = hash;
+  saveLocal();
+
+  document.getElementById('admin-new-pass').value    = '';
+  document.getElementById('admin-confirm-pass').value = '';
+  showMsg('✅ تم تغيير كلمة مرور Admin', 'g');
+
+  function showMsg(text, type) {
+    msg.style.display = 'block';
+    msg.style.color   = type === 'r' ? 'var(--red)' : 'var(--green-d)';
+    msg.textContent   = text;
+    setTimeout(() => msg.style.display = 'none', 3000);
+  }
+}
+
+// restore session on reload
+(function restoreSession() {
+  const saved = sessionStorage.getItem('mp_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('topbar-username').textContent = currentUser.name;
+      document.getElementById('topbar-avatar').textContent   = currentUser.name.charAt(0);
+      applyRoleAccess();
+    } catch { sessionStorage.removeItem('mp_user'); }
+  }
+})();
+
+// ════════════════════════════════════════
 //  INIT — load from localStorage
 // ════════════════════════════════════════
 (function init() {
@@ -799,15 +1079,19 @@ let rawSheets = {};
       DB = JSON.parse(saved);
       if (!DB.coordinators) DB.coordinators = [];
       if (!DB.lists) DB.lists = { vendors: [], branches: [], brands: [] };
-      if (!DB.lists.vendors)        DB.lists.vendors        = [];
-      if (!DB.lists.branches)       DB.lists.branches       = [];
-      if (!DB.lists.brands)         DB.lists.brands         = [];
-      if (!DB.lists.accounts)       DB.lists.accounts       = [];
+      if (!DB.lists.vendors)         DB.lists.vendors         = [];
+      if (!DB.lists.branches)        DB.lists.branches        = [];
+      if (!DB.lists.brands)          DB.lists.brands          = [];
+      if (!DB.lists.accounts)        DB.lists.accounts        = [];
       if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
+      seedBuiltinUsers();
       setBadge('💾 محفوظ محلياً', 'sync-ok');
     } catch (e) {
       setBadge('⚠️ خطأ في البيانات', 'sync-err');
     }
+  } else {
+    // first run — seed built-in users
+    seedBuiltinUsers();
   }
 })();
 
@@ -821,10 +1105,16 @@ const FB_URL = 'https://merchpro-544a5-default-rtdb.europe-west1.firebasedatabas
 let _autoSync    = false;
 let _autoSyncInt = null;
 
+let _dbVersion   = 0;  // increments every save
+const _tabVersion = {}; // last rendered version per tab
+
+function markDirty() { _dbVersion++; }
+
 function saveLocal() {
   localStorage.setItem('merchpro_db', JSON.stringify(DB));
   setBadge('💾 محفوظ محلياً', 'sync-ok');
-  if (_autoSync) fbPush(true);          // silent auto-push
+  markDirty();
+  if (_autoSync) fbPush(true);
 }
 
 function getStorageKB() {
@@ -948,17 +1238,32 @@ function fbAutoSync() {
 // ════════════════════════════════════════
 //  NAV
 // ════════════════════════════════════════
+let _activeTab = '';
+
 function switchTab(name, el) {
   document.querySelectorAll('[id^="tab-"]').forEach(c => c.classList.add('hidden'));
   document.getElementById('tab-' + name).classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
-  if (name === 'home')     buildHome();
-  if (name === 'visits')   { visitPage = 1;   renderVisits(); }
-  if (name === 'products') { productPage = 1; renderProducts(); }
-  if (name === 'stock')    { stockPage = 1;   renderStock(); }
-  if (name === 'coordinators') { coordPage = 1; renderCoordinators(); }
-  if (name === 'config')   buildConfig();
+  _activeTab = name;
+
+  const dirty = _tabVersion[name] !== _dbVersion;
+  if (!dirty) return; // nothing changed — skip rebuild
+  _tabVersion[name] = _dbVersion;
+
+  requestAnimationFrame(() => {
+    if (name === 'home')         buildHome();
+    if (name === 'visits')       { visitPage = 1;   renderVisits(); }
+    if (name === 'products')     { productPage = 1; renderProducts(); }
+    if (name === 'stock')        { stockPage = 1;   renderStock(); }
+    if (name === 'coordinators') { coordPage = 1;   renderCoordinators(); }
+    if (name === 'config')       buildConfig();
+  });
+}
+
+function invalidateTab(name) {
+  delete _tabVersion[name];
+  if (_activeTab === name) switchTab(name, null);
 }
 
 // ════════════════════════════════════════
@@ -1280,45 +1585,111 @@ function badgeHtml(s) {
 }
 
 function buildHome() {
-  const total  = DB.visits.length;
-  const done   = DB.visits.filter(v => v.status === 'مكتملة').length;
-  const units  = DB.visits.reduce((a, v) => a + (parseInt(v.units) || 0), 0);
+  // ── Visits metrics ──────────────────────────────
+  const total   = DB.visits.length;
+  const done    = DB.visits.filter(v => v.status === 'مكتملة').length;
+  const units   = DB.visits.reduce((a, v) => a + (parseInt(v.units) || 0), 0);
   const outlets = [...new Set(DB.visits.map(v => v.outlet))].length;
   document.getElementById('home-metrics').innerHTML = `
     <div class="metric"><div class="metric-label">إجمالي الزيارات</div><div class="metric-val">${total}</div></div>
-    <div class="metric"><div class="metric-label">مكتملة</div><div class="metric-val">${done}</div><div class="metric-sub">${total ? Math.round(done / total * 100) : 0}%</div></div>
+    <div class="metric"><div class="metric-label">مكتملة</div><div class="metric-val">${done}</div><div class="metric-sub">${total ? Math.round(done/total*100) : 0}%</div></div>
     <div class="metric"><div class="metric-label">إجمالي الوحدات</div><div class="metric-val">${units.toLocaleString('ar-EG')}</div></div>
     <div class="metric"><div class="metric-label">نقاط مغطاة</div><div class="metric-val">${outlets}</div></div>`;
 
+  // ── Users breakdown ──────────────────────────────
+  const coords     = DB.coordinators || [];
+  const admins     = 1; // fixed admin account
+  const supervisors= coords.filter(c => c.role === 'supervisor').length;
+  const coordCount = coords.filter(c => !c.role || c.role === 'coordinator').length;
+  const inactive   = coords.filter(c => c.status === 'غير نشط').length;
+  document.getElementById('home-users').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="metric" style="background:var(--purple-l)">
+        <div class="metric-label" style="color:var(--purple-d)">Admin</div>
+        <div class="metric-val" style="color:var(--purple-d)">${admins}</div>
+      </div>
+      <div class="metric" style="background:var(--green-l)">
+        <div class="metric-label" style="color:var(--green-d)">مشرفين</div>
+        <div class="metric-val" style="color:var(--green-d)">${supervisors}</div>
+      </div>
+      <div class="metric" style="background:var(--blue-l)">
+        <div class="metric-label" style="color:var(--blue-d)">منسقين</div>
+        <div class="metric-val" style="color:var(--blue-d)">${coordCount}</div>
+      </div>
+      <div class="metric" style="background:var(--red-l)">
+        <div class="metric-label" style="color:var(--red)">معطلين</div>
+        <div class="metric-val" style="color:var(--red)">${inactive}</div>
+      </div>
+    </div>
+    ${coords.length ? `<div style="font-size:11px;color:var(--txt3);margin-top:4px">إجمالي المستخدمين: ${coords.length + admins}</div>` : ''}`;
+
+  // ── Accounts + branches ──────────────────────────
+  const accounts = [...new Set([
+    ...(DB.lists?.accounts || []),
+    ...DB.visits.map(v => v.account).filter(Boolean)
+  ])].sort();
+  const accountBranches = DB.lists?.accountBranches || {};
+
+  document.getElementById('home-accounts').innerHTML = accounts.length
+    ? accounts.map(acc => {
+        const branches = accountBranches[acc] || [];
+        const visits   = DB.visits.filter(v => v.account === acc).length;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600">🏬 ${acc}</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
+              ${branches.length
+                ? branches.map(b => `<span style="font-size:10px;background:var(--purple-l);color:var(--purple-d);padding:1px 7px;border-radius:99px">${b}</span>`).join('')
+                : '<span style="font-size:11px;color:var(--txt3)">لا توجد فروع مرتبطة</span>'}
+            </div>
+          </div>
+          <div style="text-align:center;min-width:60px">
+            <div style="font-size:18px;font-weight:700;color:var(--purple)">${branches.length}</div>
+            <div style="font-size:10px;color:var(--txt3)">فرع</div>
+            <div style="font-size:10px;color:var(--txt3);margin-top:2px">${visits} زيارة</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--txt3);font-size:13px">لا توجد Accounts — أضف من الإعدادات</p>';
+
+  // ── Products per vendor/brand ────────────────────
+  const brandMap = {};
+  DB.products.forEach(p => {
+    const b = p.brand || 'غير محدد';
+    if (!brandMap[b]) brandMap[b] = 0;
+    brandMap[b]++;
+  });
+  const brandEntries = Object.entries(brandMap).sort((a, b) => b[1] - a[1]);
+  const totalProds   = DB.products.length;
+  const maxB         = brandEntries[0]?.[1] || 1;
+
+  document.getElementById('home-products-vendor').innerHTML = brandEntries.length
+    ? `<div style="margin-bottom:10px;font-size:12px;color:var(--txt2)">إجمالي المنتجات: <strong>${totalProds}</strong></div>` +
+      brandEntries.map(([brand, count]) => `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span style="font-weight:600">${brand}</span>
+            <span class="badge p">${count} منتج</span>
+          </div>
+          <div class="pbar"><div class="pfill" style="width:${Math.round(count/maxB*100)}%;background:var(--purple)"></div></div>
+        </div>`).join('')
+    : '<p style="color:var(--txt3);font-size:13px">لا توجد منتجات — استورد ملف المنتجات</p>';
+
+  // ── Recent visits ────────────────────────────────
   const recent = [...DB.visits].reverse().slice(0, 6);
   document.getElementById('recent-visits').innerHTML = recent.length
     ? recent.map(v => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:13px;font-weight:600">${v.outlet}</div>
-          <div style="font-size:11px;color:var(--txt2)">${v.date} · ${v.area}</div>
+          <div style="font-size:13px;font-weight:600">${v.branch || v.outlet || '—'}</div>
+          <div style="font-size:11px;color:var(--txt2)">${v.date} · ${v.coordinator||''}</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:12px;color:var(--txt2)">${parseInt(v.units) || 0} وحدة</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${v.account ? `<span style="font-size:11px;color:var(--txt3)">${v.account}</span>` : ''}
           ${badgeHtml(v.status)}
         </div>
       </div>`).join('')
-    : '<p style="color:var(--txt3);font-size:13px">لا توجد بيانات — استورد ملف إكسل أو سجّل زيارة يدوياً من تاب الزيارات</p>';
-
-  const outMap = {};
-  DB.visits.forEach(v => { outMap[v.outlet] = (outMap[v.outlet] || 0) + (parseInt(v.units) || 0); });
-  const sorted = Object.entries(outMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const mx = sorted[0]?.[1] || 1;
-  document.getElementById('outlet-perf').innerHTML = sorted.length
-    ? sorted.map(([n, u]) => `
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-          <span style="font-weight:600">${n}</span>
-          <span style="color:var(--txt2)">${u.toLocaleString('ar-EG')} وحدة</span>
-        </div>
-        <div class="pbar"><div class="pfill" style="width:${Math.round(u / mx * 100)}%;background:var(--purple)"></div></div>
-      </div>`).join('')
-    : '<p style="color:var(--txt3);font-size:13px">لا توجد بيانات</p>';
+    : '<p style="color:var(--txt3);font-size:13px">لا توجد زيارات بعد</p>';
 }
 
 // ── Visits ──
@@ -1331,7 +1702,12 @@ function renderVisits() {
   const from   = document.getElementById('v-date-from')?.value || '';
   const to     = document.getElementById('v-date-to')?.value || '';
 
+  // coordinators only see their own visits
+  const isFullAccess = !currentUser || currentUser.role === 'admin' || currentUser.role === 'supervisor';
+  const myName = currentUser?.name || '';
+
   filteredVisits = [...DB.visits].reverse().filter(v =>
+    (isFullAccess || (v.coordinator||'').toLowerCase() === myName.toLowerCase()) &&
     (!q   || (v.coordinator||'').toLowerCase().includes(q) || (v.branch||'').toLowerCase().includes(q) ||
               (v.vendor||'').toLowerCase().includes(q) || (v.productNameEN||'').toLowerCase().includes(q) ||
               (v.outlet||'').toLowerCase().includes(q)) &&
@@ -1492,7 +1868,11 @@ function renderStock() {
 // ════════════════════════════════════════
 //  LISTS MANAGEMENT
 // ════════════════════════════════════════
+let _listsVersion = -1;
+function invalidateLists() { _listsVersion = -1; }
 function renderLists() {
+  if (_listsVersion === _dbVersion) return;
+  _listsVersion = _dbVersion;
   // ── Accounts (special render with branches) ──────────────
   const accEl = document.getElementById('list-accounts');
   if (accEl) {
@@ -1502,36 +1882,41 @@ function renderLists() {
     ])].sort();
 
     if (!accounts.length) {
-      accEl.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:4px">لا توجد accounts — أضف واحد من فوق</div>';
+      accEl.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:8px">لا توجد accounts — أضف واحد من فوق</div>';
     } else {
-      accEl.innerHTML = accounts.map(acc => {
-        const linked = (DB.lists?.accountBranches?.[acc] || []);
-        const allBranches = getListValues('branches');
+      const allBranches = getListValues('branches');
+      accEl.innerHTML = accounts.map((acc, accIdx) => {
+        const linked   = (DB.lists?.accountBranches?.[acc] || []);
         const unlinked = allBranches.filter(b => !linked.includes(b));
-        return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;background:var(--bg)">
+        const selId    = `link-sel-${accIdx}`;
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;background:var(--surface);margin-bottom:4px">
+          <!-- account header -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:13px;font-weight:600;color:var(--purple-d)">🏬 ${acc}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--purple-d)">🏬 ${acc}</span>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:2px 7px;font-size:11px"
-              onclick="removeListItem('accounts','${acc.replace(/'/g,"\\'")}')">✕ حذف</button>
+              onclick="removeListItem('accounts','${acc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">✕</button>
           </div>
-          <!-- linked branches -->
-          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">
-            ${linked.length ? linked.map(b =>
-              `<span style="background:var(--purple-l);color:var(--purple-d);padding:3px 8px;border-radius:99px;font-size:11px;display:flex;align-items:center;gap:4px">
-                ${b}
-                <span style="cursor:pointer;font-weight:700" onclick="unlinkBranch('${acc.replace(/'/g,"\\'")}','${b.replace(/'/g,"\\'")}')">×</span>
-              </span>`).join('')
-            : '<span style="font-size:11px;color:var(--txt3)">لا توجد فروع مرتبطة</span>'}
+          <!-- linked branches as tags -->
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:24px">
+            ${linked.length
+              ? linked.map(b => `
+                <span style="background:var(--purple-l);color:var(--purple-d);padding:3px 10px;border-radius:99px;font-size:11px;display:inline-flex;align-items:center;gap:5px">
+                  ${b}
+                  <span style="cursor:pointer;font-weight:900;font-size:13px;line-height:1"
+                    onclick="unlinkBranch('${acc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${b.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">×</span>
+                </span>`).join('')
+              : '<span style="font-size:11px;color:var(--txt3);font-style:italic">لا توجد فروع مرتبطة بعد</span>'}
           </div>
-          <!-- add branch -->
-          ${unlinked.length ? `<div style="display:flex;gap:6px">
-            <select class="form-select" id="link-branch-${acc.replace(/[^a-zA-Z0-9]/g,'_')}" style="font-size:11px;padding:3px 6px;flex:1">
-              <option value="">+ اربط فرع</option>
-              ${unlinked.map(b => `<option value="${b}">${b}</option>`).join('')}
-            </select>
-            <button class="btn btn-sm" style="font-size:11px;padding:3px 8px"
-              onclick="linkBranch('${acc.replace(/'/g,"\\'")}','link-branch-${acc.replace(/[^a-zA-Z0-9]/g,'_')}')">ربط</button>
-          </div>` : ''}
+          <!-- link new branch -->
+          <div style="display:flex;gap:6px;align-items:center">
+            ${allBranches.length
+              ? `<select id="${selId}" class="form-select" style="flex:1;font-size:12px">
+                  <option value="">— اختر فرع للربط —</option>
+                  ${allBranches.map(b => `<option value="${b}"${linked.includes(b) ? ' disabled style="color:var(--txt3)"' : ''}>${b}${linked.includes(b) ? ' ✓' : ''}</option>`).join('')}
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="linkBranchById('${acc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${selId}')">🔗 ربط</button>`
+              : `<span style="font-size:11px;color:var(--amber)">⚠️ أضف فروع أولاً في قسم "الفرع" بالأسفل</span>`}
+          </div>
         </div>`;
       }).join('');
     }
@@ -1699,16 +2084,23 @@ function downloadAccountTemplate() {
 }
 
 function linkBranch(account, selectId) {
+  linkBranchById(account, selectId);
+}
+
+function linkBranchById(account, selectId) {
   const sel    = document.getElementById(selectId);
   const branch = sel?.value;
-  if (!branch) return;
-  if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
+  if (!branch) { toast('⚠️ اختر فرع أولاً'); return; }
+  if (!DB.lists.accountBranches)          DB.lists.accountBranches = {};
   if (!DB.lists.accountBranches[account]) DB.lists.accountBranches[account] = [];
   if (!DB.lists.accountBranches[account].includes(branch)) {
     DB.lists.accountBranches[account].push(branch);
     saveLocal();
     renderLists();
-    toast(`تم ربط "${branch}" بـ "${account}"`);
+    refreshFormDropdowns();
+    toast(`✅ تم ربط "${branch}" بـ "${account}"`);
+  } else {
+    toast('الفرع ده مرتبط بالفعل');
   }
 }
 
@@ -1775,8 +2167,76 @@ function getListValues(key) {
 }
 
 // ── Config ──
+let _permsVersion = -1;
+function renderPermissions() {
+  if (_permsVersion === _dbVersion) return;
+  _permsVersion = _dbVersion;
+  const card = document.getElementById('card-permissions');
+  const list = document.getElementById('permissions-list');
+  if (!card || !list) return;
+
+  // show only for admin
+  const isAdmin = currentUser?.role === 'admin';
+  card.style.display = isAdmin ? 'block' : 'none';
+  if (!isAdmin) return;
+
+  const coords = DB.coordinators || [];
+  if (!coords.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--txt3)">لا يوجد مستخدمين — أضف منسقين أولاً</div>';
+    return;
+  }
+
+  list.innerHTML = coords.map((c, idx) => `
+    <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${c.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${c.area||''} ${c.phone ? '· '+c.phone : ''}</div>
+      </div>
+      <!-- role selector -->
+      <select class="form-select" style="font-size:12px;width:140px"
+        onchange="changeUserRole(${idx}, this.value)">
+        <option value="coordinator" ${(c.role||'coordinator')==='coordinator'?'selected':''}>👤 منسق</option>
+        <option value="supervisor"  ${c.role==='supervisor'?'selected':''}>🔑 مشرف</option>
+      </select>
+      <!-- status -->
+      <select class="form-select" style="font-size:12px;width:110px"
+        onchange="changeUserStatus(${idx}, this.value)">
+        <option value="نشط"     ${(c.status||'نشط')==='نشط'?'selected':''}>✅ نشط</option>
+        <option value="غير نشط" ${c.status==='غير نشط'?'selected':''}>🔴 معطل</option>
+      </select>
+      <!-- reset password -->
+      <button class="btn btn-sm" onclick="resetUserPass(${idx})" title="إعادة تعيين كلمة المرور إلى 123">🔄 123</button>
+    </div>`).join('');
+}
+
+function changeUserRole(idx, role) {
+  if (!DB.coordinators[idx]) return;
+  DB.coordinators[idx].role = role;
+  saveLocal();
+  renderPermissions();
+  renderCoordinators();
+  toast(`✅ تم تغيير دور "${DB.coordinators[idx].name}" إلى ${role === 'supervisor' ? 'مشرف' : 'منسق'}`);
+}
+
+function changeUserStatus(idx, status) {
+  if (!DB.coordinators[idx]) return;
+  DB.coordinators[idx].status = status;
+  saveLocal();
+  renderPermissions();
+  renderCoordinators();
+  toast(`✅ تم ${status === 'نشط' ? 'تفعيل' : 'تعطيل'} حساب "${DB.coordinators[idx].name}"`);
+}
+
+async function resetUserPass(idx) {
+  if (!DB.coordinators[idx]) return;
+  DB.coordinators[idx].passwordHash = '';  // empty = default 123
+  saveLocal();
+  toast(`✅ تم إعادة كلمة مرور "${DB.coordinators[idx].name}" إلى 123`);
+}
+
 function buildConfig() {
   renderLists();
+  renderPermissions();
   const kb   = getStorageKB();
   const pct  = Math.min(100, Math.round(kb / 5120 * 100)); // 5MB limit
   document.getElementById('storage-used').textContent  = `${kb} KB من 5,120 KB`;
@@ -1947,6 +2407,15 @@ function closeModal() {
 //  UTILS
 // ════════════════════════════════════════
 let _toastTimer = null;
+const _debounceTimers = {};
+function debounce(fn, delay = 250) {
+  return function(...args) {
+    const key = fn.name || 'fn';
+    clearTimeout(_debounceTimers[key]);
+    _debounceTimers[key] = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 function toast(msg, dur = 3000) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -2016,6 +2485,9 @@ function renderCoordinators() {
           <td>${c.area || '—'}</td>
           <td dir="ltr" style="text-align:right">${c.phone || '—'}</td>
           <td>${c.brand ? `<span class="badge p">${c.brand}</span>` : '—'}</td>
+          <td>${c.role === 'supervisor'
+            ? '<span class="badge g">مشرف</span>'
+            : '<span class="badge b">منسق</span>'}</td>
           <td><span class="badge b">${visitCount} زيارة</span></td>
           <td>${badgeHtml(c.status || 'نشط')}</td>
           <td style="white-space:nowrap">
@@ -2036,13 +2508,16 @@ function openCoordForm(idx = -1) {
   const c = isEdit ? DB.coordinators[idx] : null;
 
   document.getElementById('cf-title').textContent = isEdit ? '✏️ تعديل بيانات المنسق' : '➕ إضافة منسق جديد';
-  document.getElementById('cf-name').value   = c?.name   || '';
-  document.getElementById('cf-code').value   = c?.code   || '';
-  document.getElementById('cf-area').value   = c?.area   || '';
-  document.getElementById('cf-phone').value  = c?.phone  || '';
-  document.getElementById('cf-vendor').value = c?.vendor || '';
-  document.getElementById('cf-status').value = c?.status || 'نشط';
-  document.getElementById('cf-notes').value  = c?.notes  || '';
+  document.getElementById('cf-name').value     = c?.name     || '';
+  document.getElementById('cf-code').value     = c?.code     || '';
+  document.getElementById('cf-area').value     = c?.area     || '';
+  document.getElementById('cf-phone').value    = c?.phone    || '';
+  document.getElementById('cf-vendor').value   = c?.vendor   || '';
+  document.getElementById('cf-status').value   = c?.status   || 'نشط';
+  document.getElementById('cf-notes').value    = c?.notes    || '';
+  document.getElementById('cf-role').value     = c?.role     || 'coordinator';
+  document.getElementById('cf-password').value = '';
+  document.getElementById('cf-pass-hint').style.display = isEdit ? 'block' : 'none';
   document.getElementById('cf-error').style.display = 'none';
 
   // fill vendor datalist from products
@@ -2062,36 +2537,44 @@ function closeCoordForm() {
 }
 
 function saveCoord() {
-  const name   = document.getElementById('cf-name').value.trim();
-  const code   = document.getElementById('cf-code').value.trim();
-  const area   = document.getElementById('cf-area').value.trim();
-  const phone  = document.getElementById('cf-phone').value.trim();
-  const vendor = document.getElementById('cf-vendor').value.trim();
-  const status = document.getElementById('cf-status').value;
-  const notes  = document.getElementById('cf-notes').value.trim();
+  const name     = document.getElementById('cf-name').value.trim();
+  const code     = document.getElementById('cf-code').value.trim();
+  const area     = document.getElementById('cf-area').value.trim();
+  const phone    = document.getElementById('cf-phone').value.trim();
+  const vendor   = document.getElementById('cf-vendor').value.trim();
+  const status   = document.getElementById('cf-status').value;
+  const notes    = document.getElementById('cf-notes').value.trim();
+  const password = document.getElementById('cf-password').value;
 
   const errEl = document.getElementById('cf-error');
   if (!name) { errEl.textContent = '⚠️ الاسم مطلوب'; errEl.style.display = 'block'; document.getElementById('cf-name').focus(); return; }
 
-  // check duplicate name (excluding current edit)
-  const dupIdx = DB.coordinators.findIndex((c, i) => c.name === name && i !== _editCoordIdx);
-  if (dupIdx >= 0) { errEl.textContent = '⚠️ يوجد منسق بنفس الاسم'; errEl.style.display = 'block'; return; }
+  const dupName = DB.coordinators.findIndex((c, i) => c.name === name && i !== _editCoordIdx);
+  if (dupName >= 0) { errEl.textContent = '⚠️ يوجد منسق بنفس الاسم'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
 
-  const coord = { name, code, area, phone, vendor, status, notes };
+  const doSave = async () => {
+    const existing = _editCoordIdx >= 0 ? DB.coordinators[_editCoordIdx] : {};
+    let passwordHash = existing.passwordHash || '';
+    if (password) passwordHash = await sha256(password);
+    // leave passwordHash empty = default 123
 
-  if (_editCoordIdx >= 0) {
-    DB.coordinators[_editCoordIdx] = coord;
-    toast('✅ تم تعديل بيانات المنسق');
-  } else {
-    if (!DB.coordinators) DB.coordinators = [];
-    DB.coordinators.push(coord);
-    toast('✅ تم إضافة المنسق');
-  }
+    const role  = document.getElementById('cf-role').value;
+    const coord = { name, code, area, phone, vendor, status, notes, passwordHash, role };
 
-  saveLocal();
-  closeCoordForm();
-  renderCoordinators();
+    if (_editCoordIdx >= 0) {
+      DB.coordinators[_editCoordIdx] = coord;
+      toast('✅ تم تعديل بيانات المنسق');
+    } else {
+      if (!DB.coordinators) DB.coordinators = [];
+      DB.coordinators.push(coord);
+      toast('✅ تم إضافة المنسق');
+    }
+    saveLocal();
+    closeCoordForm();
+    renderCoordinators();
+  };
+  doSave();
 }
 
 function deleteCoord(idx) {
@@ -2215,7 +2698,8 @@ function openVisitForm(idx = -1) {
   document.getElementById('vf-title').textContent = isEdit ? '✏️ تعديل الزيارة' : '➕ تسجيل زيارة جديدة';
   document.getElementById('vf-coordinator').value = v?.coordinator || '';
   // vendor, account & branch selects are populated below after building options
-  document.getElementById('vf-visit-day').value    = v?.visitDay   || '';
+  const defaultDate = v?.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('vf-visit-day').value = v?.visitDay || new Date(defaultDate).getDate();
   document.getElementById('vf-date').value         = v?.date       || new Date().toISOString().slice(0, 10);
   document.getElementById('vf-status').value       = v?.status     || 'مكتملة';
   document.getElementById('vf-notes').value        = v?.notes      || '';
@@ -2227,7 +2711,8 @@ function openVisitForm(idx = -1) {
   const container = document.getElementById('vf-items-container');
   container.innerHTML = '';
   if (isEdit && v) {
-    addVisitItem({ productNameEN: v.productNameEN, units: v.units, displayStatus: v.displayStatus, mfgDate: v.mfgDate, expiryDate: v.expiryDate, shelfLife: v.shelfLife, remaining: v.remaining, alarm: v.alarm });
+    const visitItems = Array.isArray(v.items) ? v.items : [{ brand: v.brand, productNameEN: v.productNameEN, units: v.units, displayStatus: v.displayStatus, expiryDate: v.expiryDate, shelfLife: v.shelfLife, remaining: v.remaining, alarm: v.alarm }];
+    visitItems.forEach(it => addVisitItem(it));
   }
   updateItemsEmpty();
 
@@ -2293,81 +2778,106 @@ function addProductLine(data = {}) {
   container.appendChild(div);
 }
 
+const MAX_ITEMS = 50;
+
 function addVisitItem(data = {}) {
   const container = document.getElementById('vf-items-container');
+  if (container.children.length >= MAX_ITEMS) {
+    toast(`⚠️ الحد الأقصى ${MAX_ITEMS} صنف`);
+    return;
+  }
   const row = document.createElement('div');
   row.className = 'vf-item-row';
-  row.style.cssText = 'border-bottom:1px solid var(--border);padding:12px;background:var(--surface)';
+  row.style.cssText = 'border-bottom:1px solid var(--border);background:var(--surface)';
 
-  const curVendor   = document.getElementById('vf-brand')?.value || '';
-  const productOpts = buildProductOpts(curVendor, data.productNameEN || '');
+  // item-level brand: use data.brand if editing, else default to visit-level brand
+  const itemBrand   = data.brand || document.getElementById('vf-brand')?.value || '';
+  const productOpts = buildProductOpts(itemBrand, data.productNameEN || '');
 
-  const preRem   = calcRemaining(data.expiryDate);
-  const preShelf = data.shelfLife || calcShelfLife(data.mfgDate, data.expiryDate) || '';
+  // brand options for item dropdown
+  const brandsList  = getListValues('brands');
+  const brandOpts   = brandsList.map(b =>
+    `<option value="${b}"${b === itemBrand ? ' selected' : ''}>${b}</option>`
+  ).join('');
+
+  const preRem    = calcRemaining(data.expiryDate);
+  const visitDate = document.getElementById('vf-date')?.value || '';
+  const preShelf  = data.shelfLife || calcShelfLife(visitDate, data.expiryDate) || '';
   const preAlarm = autoAlarm(preRem !== '' ? preRem : (data.remaining || ''));
   const remColor = preRem < 0 ? 'var(--red)' : preRem < 30 ? 'var(--amber)' : preRem !== '' ? 'var(--green)' : 'var(--txt3)';
 
+  const itemNum = container.children.length + 1;
+
   row.innerHTML = `
-    <!-- Line 1: الصنف + حذف -->
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <select class="form-select" data-field="productNameEN" style="flex:1;font-size:13px">
+    <!-- Header: رقم + Brand + صنف + طي + حذف -->
+    <div class="item-header" style="display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--bg);cursor:pointer"
+         onclick="toggleItemRow(this.closest('.vf-item-row'))">
+      <span style="font-size:11px;font-weight:700;color:var(--purple-d);min-width:20px">#${itemNum}</span>
+      <select class="form-select" data-field="itemBrand" style="max-width:110px;font-size:12px"
+        onclick="event.stopPropagation()"
+        onchange="onItemBrandChange(this.closest('.vf-item-row'))">
+        <option value="">Brand</option>
+        ${brandOpts}
+      </select>
+      <select class="form-select" data-field="productNameEN" style="flex:1;font-size:12px"
+        onclick="event.stopPropagation()" onchange="updateItemHeader(this.closest('.vf-item-row'))">
         <option value="">اختر صنف...</option>
         ${productOpts}
       </select>
-      <button type="button" class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);flex-shrink:0"
-        onclick="this.closest('.vf-item-row').remove();updateItemsEmpty()">✕ حذف</button>
+      <span data-field="item-alarm" style="font-size:11px">${preAlarm ? '<span class="badge ' + (preAlarm==='منتهي'?'r':'a') + '">' + preAlarm + '</span>' : ''}</span>
+      <span class="item-toggle" style="font-size:11px;color:var(--txt3);user-select:none">▼</span>
+      <button type="button" class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:3px 8px;font-size:11px"
+        onclick="event.stopPropagation();this.closest('.vf-item-row').remove();updateItemsEmpty()">✕</button>
     </div>
-    <!-- Line 2: الكمية + display status -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div>
-        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">الكمية</div>
-        <input class="form-input" data-field="units" type="number" min="0" placeholder="0" value="${data.units ?? ''}">
+    <!-- Body: الحقول -->
+    <div class="item-body" style="padding:10px 12px">
+      <!-- الكمية + display status -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:10px;color:var(--txt2);margin-bottom:3px;font-weight:600">الكمية</div>
+          <input class="form-input" data-field="units" type="number" min="0" placeholder="0" value="${data.units ?? ''}" style="font-size:12px">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--txt2);margin-bottom:3px;font-weight:600">display status</div>
+          <select class="form-select" data-field="displayStatus" style="font-size:12px">
+            <option value="">—</option>
+            <option value="الرف"${data.displayStatus==='الرف'?' selected':''}>الرف</option>
+            <option value="كولر"${data.displayStatus==='كولر'?' selected':''}>كولر</option>
+            <option value="برّاد"${data.displayStatus==='برّاد'?' selected':''}>برّاد</option>
+            <option value="ستاند"${data.displayStatus==='ستاند'?' selected':''}>ستاند</option>
+            <option value="عرض خاص"${data.displayStatus==='عرض خاص'?' selected':''}>عرض خاص</option>
+            <option value="مخزن"${data.displayStatus==='مخزن'?' selected':''}>مخزن</option>
+          </select>
+        </div>
       </div>
-      <div>
-        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">display status</div>
-        <select class="form-select" data-field="displayStatus">
-          <option value="">—</option>
-          <option value="الرف"${data.displayStatus==='الرف'?' selected':''}>الرف</option>
-          <option value="كولر"${data.displayStatus==='كولر'?' selected':''}>كولر</option>
-          <option value="برّاد"${data.displayStatus==='برّاد'?' selected':''}>برّاد</option>
-          <option value="ستاند"${data.displayStatus==='ستاند'?' selected':''}>ستاند</option>
-          <option value="عرض خاص"${data.displayStatus==='عرض خاص'?' selected':''}>عرض خاص</option>
-          <option value="مخزن"${data.displayStatus==='مخزن'?' selected':''}>مخزن</option>
-        </select>
+      <!-- تواريخ -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:10px;color:var(--txt2);margin-bottom:3px;font-weight:600">فترة الصلاحية (يوم)</div>
+          <input class="form-input" data-field="shelfLifeInput" type="number" min="1" placeholder="365"
+            value="${preShelf || ''}" style="font-size:12px"
+            onchange="calcItemDates(this.closest('.vf-item-row'))">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--txt2);margin-bottom:3px;font-weight:600">تاريخ الانتهاء</div>
+          <input class="form-input" data-field="expiryDate" type="date" value="${data.expiryDate || ''}"
+            style="font-size:11px" onchange="calcItemDates(this.closest('.vf-item-row'))">
+        </div>
       </div>
-    </div>
-    <!-- Line 3: تاريخ الإنتاج + فترة الصلاحية (يوم) + تاريخ الانتهاء -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-      <div>
-        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">تاريخ الإنتاج</div>
-        <input class="form-input" data-field="mfgDate" type="date" value="${data.mfgDate || ''}"
-          onchange="calcItemDates(this.closest('.vf-item-row'))">
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">فترة الصلاحية (يوم)</div>
-        <input class="form-input" data-field="shelfLifeInput" type="number" min="1" placeholder="مثال: 365"
-          value="${preShelf || ''}"
-          onchange="calcItemDates(this.closest('.vf-item-row'))">
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--txt2);margin-bottom:4px;font-weight:600">تاريخ الانتهاء</div>
-        <input class="form-input" data-field="expiryDate" type="date" value="${data.expiryDate || ''}"
-          onchange="calcItemDates(this.closest('.vf-item-row'))">
-      </div>
-    </div>
-    <!-- Line 4: نتائج الحساب -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;background:var(--bg);border-radius:var(--radius-sm);padding:10px">
-      <div style="text-align:center">
-        <div style="font-size:10px;color:var(--txt3);margin-bottom:3px">مدة الصلاحية</div>
-        <div data-field="shelfLife" style="font-size:14px;font-weight:700;color:var(--purple-d)">${preShelf !== '' ? preShelf + ' يوم' : '—'}</div>
-      </div>
-      <div style="text-align:center">
-        <div style="font-size:10px;color:var(--txt3);margin-bottom:3px">الوقت الباقي</div>
-        <div data-field="remaining" style="font-size:14px;font-weight:700;color:${remColor}">${preRem !== '' ? preRem + ' يوم' : '—'}</div>
-      </div>
-      <div style="text-align:center">
-        <div style="font-size:10px;color:var(--txt3);margin-bottom:3px">Alarm</div>
-        <div data-field="alarm">${preAlarm ? '<span class="badge ' + (preAlarm==='منتهي'?'r':'a') + '">' + preAlarm + '</span>' : '<span style="color:var(--txt3)">—</span>'}</div>
+      <!-- نتائج -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:var(--bg);border-radius:var(--radius-sm);padding:8px">
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--txt3);margin-bottom:2px">مدة الصلاحية</div>
+          <div data-field="shelfLife" style="font-size:13px;font-weight:700;color:var(--purple-d)">${preShelf !== '' ? preShelf + ' يوم' : '—'}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--txt3);margin-bottom:2px">الوقت الباقي</div>
+          <div data-field="remaining" style="font-size:13px;font-weight:700;color:${remColor}">${preRem !== '' ? preRem + ' يوم' : '—'}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--txt3);margin-bottom:2px">Alarm</div>
+          <div data-field="alarm">${preAlarm ? '<span class="badge ' + (preAlarm==='منتهي'?'r':'a') + '">' + preAlarm + '</span>' : '<span style="color:var(--txt3)">—</span>'}</div>
+        </div>
       </div>
     </div>`;
 
@@ -2392,19 +2902,65 @@ function addVisitItem(data = {}) {
 function updateItemsEmpty() {
   const container = document.getElementById('vf-items-container');
   const empty     = document.getElementById('vf-items-empty');
-  empty.style.display = container.children.length === 0 ? 'block' : 'none';
+  const count     = container.children.length;
+  empty.style.display = count === 0 ? 'block' : 'none';
+  const counter = document.getElementById('vf-items-count');
+  if (counter) {
+    counter.textContent = `${count} / ${MAX_ITEMS}`;
+    counter.style.color = count >= MAX_ITEMS ? 'var(--red)' : count >= 40 ? 'var(--amber)' : 'var(--txt3)';
+  }
+  // renumber items
+  [...container.children].forEach((row, i) => {
+    const num = row.querySelector('.item-header span');
+    if (num && num.style.minWidth) num.textContent = `#${i + 1}`;
+  });
+}
+
+function toggleItemRow(row) {
+  const body   = row.querySelector('.item-body');
+  const toggle = row.querySelector('.item-toggle');
+  const isOpen = body.style.display !== 'none';
+  body.style.display   = isOpen ? 'none' : 'block';
+  toggle.textContent   = isOpen ? '▶' : '▼';
+}
+
+function collapseAllItems() {
+  document.querySelectorAll('#vf-items-container .vf-item-row').forEach(row => {
+    const body   = row.querySelector('.item-body');
+    const toggle = row.querySelector('.item-toggle');
+    if (body)   body.style.display = 'none';
+    if (toggle) toggle.textContent = '▶';
+  });
+}
+
+function updateItemHeader(row) {
+  const alarm = row.querySelector('[data-field="item-alarm"]');
+  if (!alarm) return;
+  const exp = row.querySelector('[data-field="expiryDate"]')?.value || '';
+  const rem = calcRemaining(exp);
+  const a   = autoAlarm(rem);
+  alarm.innerHTML = a ? `<span class="badge ${a==='منتهي'?'r':'a'}">${a}</span>` : '';
 }
 
 // Vendor → filter items product dropdowns
 function onBrandChange() {
-  const vendor = document.getElementById('vf-brand').value;
-  // rebuild all existing item rows' product selects filtered by vendor
+  // global brand changed — update only rows that have no item-level brand set
+  const globalBrand = document.getElementById('vf-brand').value;
   document.querySelectorAll('#vf-items-container .vf-item-row').forEach(row => {
-    const sel     = row.querySelector('[data-field="productNameEN"]');
-    const curVal  = sel?.value || '';
-    const opts    = buildProductOpts(vendor, curVal);
-    if (sel) sel.innerHTML = `<option value="">اختر صنف...</option>${opts}`;
+    const itemBrandSel = row.querySelector('[data-field="itemBrand"]');
+    if (itemBrandSel && itemBrandSel.value) return; // has own brand, skip
+    const sel    = row.querySelector('[data-field="productNameEN"]');
+    const curVal = sel?.value || '';
+    if (sel) sel.innerHTML = `<option value="">اختر صنف...</option>${buildProductOpts(globalBrand, curVal)}`;
   });
+}
+
+// per-item brand change → filter only that row's product dropdown
+function onItemBrandChange(row) {
+  const brand  = row.querySelector('[data-field="itemBrand"]')?.value || '';
+  const sel    = row.querySelector('[data-field="productNameEN"]');
+  const curVal = sel?.value || '';
+  if (sel) sel.innerHTML = `<option value="">اختر صنف...</option>${buildProductOpts(brand, curVal)}`;
 }
 
 // Account → filter branches by accountBranches map
@@ -2461,28 +3017,28 @@ function autoAlarm(rem) {
 }
 
 function calcItemDates(row) {
-  const mfgEl       = row.querySelector('[data-field="mfgDate"]');
-  const expEl       = row.querySelector('[data-field="expiryDate"]');
-  const shelfInpEl  = row.querySelector('[data-field="shelfLifeInput"]');
+  const expEl      = row.querySelector('[data-field="expiryDate"]');
+  const shelfInpEl = row.querySelector('[data-field="shelfLifeInput"]');
 
-  let mfg  = mfgEl?.value  || '';
-  let exp  = expEl?.value  || '';
+  // use visit date as base instead of mfgDate
+  const visitDate = document.getElementById('vf-date')?.value || '';
+  let exp         = expEl?.value || '';
   const shelfDays = parseInt(shelfInpEl?.value) || 0;
 
-  // if mfg + shelfDays → auto-fill expiry
-  if (mfg && shelfDays && !exp) {
-    const d = new Date(mfg);
+  // visitDate + shelfDays → auto-fill expiry
+  if (visitDate && shelfDays && !exp) {
+    const d = new Date(visitDate);
     d.setDate(d.getDate() + shelfDays);
     exp = d.toISOString().slice(0, 10);
     if (expEl) expEl.value = exp;
   }
-  // if mfg + expiry → auto-fill shelfDays
-  if (mfg && exp && !shelfDays) {
-    const computed = calcShelfLife(mfg, exp);
+  // visitDate + expiry → auto-fill shelfDays
+  if (visitDate && exp && !shelfDays) {
+    const computed = calcShelfLife(visitDate, exp);
     if (computed !== '' && shelfInpEl) shelfInpEl.value = computed;
   }
 
-  const shelf = calcShelfLife(mfg, exp);
+  const shelf = calcShelfLife(visitDate, exp);
   const rem   = calcRemaining(exp);
   const alarm = autoAlarm(rem);
 
@@ -2502,6 +3058,9 @@ function calcItemDates(row) {
       ? `<span class="badge ${alarm === 'منتهي' ? 'r' : 'a'}">${alarm}</span>`
       : '<span style="color:var(--txt3)">—</span>';
   }
+  // update header alarm badge too
+  const headerAlarm = row.querySelector('[data-field="item-alarm"]');
+  if (headerAlarm) headerAlarm.innerHTML = alarm ? `<span class="badge ${alarm==='منتهي'?'r':'a'}">${alarm}</span>` : '';
 }
 
 // helper: build product options filtered by vendor/brand
@@ -2532,17 +3091,17 @@ function saveVisit() {
 
   // collect items
   const rows = document.querySelectorAll('#vf-items-container .vf-item-row');
+  const visitDate = document.getElementById('vf-date')?.value || '';
   const items = [...rows].map(row => {
-    const mfg       = row.querySelector('[data-field="mfgDate"]')?.value?.trim()       || '';
-    const exp       = row.querySelector('[data-field="expiryDate"]')?.value?.trim()    || '';
-    const shelfInp  = parseInt(row.querySelector('[data-field="shelfLifeInput"]')?.value) || 0;
-    const rem       = calcRemaining(exp);
-    const shelf     = calcShelfLife(mfg, exp);
+    const exp      = row.querySelector('[data-field="expiryDate"]')?.value?.trim()    || '';
+    const shelfInp = parseInt(row.querySelector('[data-field="shelfLifeInput"]')?.value) || 0;
+    const rem      = calcRemaining(exp);
+    const shelf    = calcShelfLife(visitDate, exp);
     return {
-      productNameEN: row.querySelector('[data-field="productNameEN"]')?.value?.trim() || '',
-      units:         parseInt(row.querySelector('[data-field="units"]')?.value) || 0,
-      displayStatus: row.querySelector('[data-field="displayStatus"]')?.value?.trim() || '',
-      mfgDate:       mfg,
+      brand:         row.querySelector('[data-field="itemBrand"]')?.value?.trim()        || '',
+      productNameEN: row.querySelector('[data-field="productNameEN"]')?.value?.trim()    || '',
+      units:         parseInt(row.querySelector('[data-field="units"]')?.value)          || 0,
+      displayStatus: row.querySelector('[data-field="displayStatus"]')?.value?.trim()    || '',
       expiryDate:    exp,
       shelfLife:     shelf !== '' ? shelf : shelfInp,
       remaining:     rem   !== '' ? rem   : 0,
@@ -2559,18 +3118,17 @@ function saveVisit() {
   const header = { coordinator, account, branch, vendor, brand, visitDay, date, status, notes, outlet: branch, area: account };
 
   if (_editVisitIdx >= 0) {
-    // editing: update single record (keep item fields from first row or blank)
     const it = items[0] || {};
-    DB.visits[_editVisitIdx] = { ...header, productNameEN: it.productNameEN||'', units: it.units||0, displayStatus: it.displayStatus||'', remaining: it.remaining||0, alarm: it.alarm||'' };
+    DB.visits[_editVisitIdx] = { ...header, ...it, items };
     toast('✅ تم تعديل الزيارة');
   } else {
     if (items.length === 0) {
-      // no items — save header-only record
-      DB.visits.push({ ...header, productNameEN: '', units: 0, displayStatus: '', remaining: 0, alarm: '' });
+      DB.visits.push({ ...header, items: [], productNameEN: '', units: 0 });
     } else {
-      items.forEach(it => DB.visits.push({ ...header, ...it }));
+      // save one record per visit with all items embedded
+      DB.visits.push({ ...header, items, ...items[0] });
     }
-    toast(`✅ تم حفظ الزيارة (${items.length || 1} صنف)`);
+    toast(`✅ تم حفظ الزيارة (${items.length || 0} صنف)`);
   }
 
   saveLocal();
