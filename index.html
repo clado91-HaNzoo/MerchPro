@@ -948,58 +948,72 @@ async function sha256(str) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-async function doLogin() {
+function doLogin() {
   const username = document.getElementById('login-user').value.trim().toLowerCase();
-  const password = document.getElementById('login-pass').value;
+  const password = document.getElementById('login-pass').value.trim();
   const errEl    = document.getElementById('login-err');
   errEl.style.display = 'none';
 
-  if (!username || !password) { errEl.style.display = 'block'; errEl.textContent = 'أدخل الاسم وكلمة المرور'; return; }
-
-  let hash;
-  try {
-    hash = await sha256(password);
-  } catch(e) {
-    // fallback: simple hash for older browsers
-    hash = btoa(unescape(encodeURIComponent(password))).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0).toString(16);
+  if (!username || !password) {
+    errEl.textContent = 'أدخل الاسم وكلمة المرور';
     errEl.style.display = 'block';
-    errEl.textContent = 'خطأ في التشفير: ' + e.message;
     return;
   }
 
-  // check admin (use custom hash if set, else default)
-  const adminHash = DB.settings?.adminHash || ADMIN_PASS_HASH;
-  if (username === ADMIN_USER && hash === adminHash) {
+  // check admin — plain text compare
+  const ADMIN_PLAIN = '147852';
+  if (username === 'admin' && password === ADMIN_PLAIN) {
     currentUser = { username: 'admin', name: 'المدير', role: 'admin' };
     onLoginSuccess();
     return;
   }
 
-  // check coordinators — login by name
-  const DEFAULT_PASS_HASH = 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3'; // 123
+  // check coordinators — by name + plain text or stored hash
   const coords = DB.coordinators || [];
   const idx = coords.findIndex(c => {
-    const nameMatch = (c.name||'').toLowerCase() === username;
-    const passOk    = c.passwordHash
-      ? c.passwordHash === hash
-      : hash === DEFAULT_PASS_HASH;
-    return nameMatch && passOk;
+    if ((c.name || '').toLowerCase() !== username) return false;
+    if (c.status === 'غير نشط') return false;
+    // if password stored as hash, compare with sha256 async below
+    // for plain passwords (123 default) compare directly
+    if (!c.passwordHash) return password === '123';
+    return false; // will handle hashed below
   });
+
   if (idx >= 0) {
     const c = coords[idx];
-    if (c.status === 'غير نشط') {
-      errEl.style.display = 'block';
-      errEl.textContent   = '🔴 هذا الحساب معطل — تواصل مع الـ Admin';
-      return;
-    }
     const role = c.role === 'supervisor' ? 'supervisor' : 'coordinator';
     currentUser = { username: c.name, name: c.name, role, coordIdx: idx };
     onLoginSuccess();
     return;
   }
 
+  // try SHA-256 for hashed passwords
+  if (window.crypto && window.crypto.subtle) {
+    sha256(password).then(hash => {
+      const idx2 = coords.findIndex(c =>
+        (c.name||'').toLowerCase() === username &&
+        c.passwordHash === hash &&
+        c.status !== 'غير نشط'
+      );
+      if (idx2 >= 0) {
+        const c = coords[idx2];
+        const role = c.role === 'supervisor' ? 'supervisor' : 'coordinator';
+        currentUser = { username: c.name, name: c.name, role, coordIdx: idx2 };
+        onLoginSuccess();
+      } else {
+        errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
+        errEl.style.display = 'block';
+        document.getElementById('login-pass').value = '';
+      }
+    }).catch(() => {
+      errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
+      errEl.style.display = 'block';
+    });
+    return;
+  }
+
+  errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
   errEl.style.display = 'block';
-  errEl.textContent   = 'اسم المستخدم أو كلمة المرور غير صحيحة';
   document.getElementById('login-pass').value = '';
 }
 
