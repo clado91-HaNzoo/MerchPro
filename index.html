@@ -143,10 +143,22 @@ textarea.form-input { resize: vertical; }
 .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
+/* ── LOADING SCREEN ── */
+#loading-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.loading-logo { font-size: 32px; font-weight: 700; color: var(--purple); margin-bottom: 12px; }
+.loading-msg  { font-size: 13px; color: var(--txt2); margin-top: 12px; }
+.loading-bar  { width: 200px; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.loading-fill { height: 100%; background: var(--purple); border-radius: 99px; animation: loadpulse 1.2s ease-in-out infinite; }
+@keyframes loadpulse { 0%{width:0%} 50%{width:80%} 100%{width:100%} }
+
 /* ── LOGIN SCREEN ── */
 #login-screen {
   position: fixed; inset: 0; background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
+  display: none; align-items: center; justify-content: center;
   z-index: 9000;
 }
 .login-card {
@@ -161,6 +173,14 @@ textarea.form-input { resize: vertical; }
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- ═══════════ LOADING SCREEN ═══════════ -->
+<div id="loading-screen">
+  <div class="loading-logo">📦 MerchPro</div>
+  <div class="spinner" style="width:28px;height:28px;border-width:3px;border-color:rgba(83,74,183,0.2);border-top-color:var(--purple)"></div>
+  <div class="loading-msg" id="loading-msg">جارٍ تحميل البيانات...</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
 
 <!-- ═══════════ LOGIN SCREEN ═══════════ -->
 <div id="login-screen">
@@ -1036,9 +1056,9 @@ function doLogout() {
   _permsVersion = -1;
   // restore all nav tabs
   document.querySelectorAll('.nav-item').forEach(el => el.style.display = '');
-  document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('topbar-username').textContent = '';
   document.getElementById('topbar-avatar').textContent   = '—';
+  showLoginScreen();
 }
 
 
@@ -1079,18 +1099,7 @@ async function changeAdminPass() {
 }
 
 // restore session on reload
-(function restoreSession() {
-  const saved = sessionStorage.getItem('mp_user');
-  if (saved) {
-    try {
-      currentUser = JSON.parse(saved);
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('topbar-username').textContent = currentUser.name;
-      document.getElementById('topbar-avatar').textContent   = currentUser.name.charAt(0);
-      applyRoleAccess();
-    } catch { sessionStorage.removeItem('mp_user'); }
-  }
-})();
+// session restore is now handled inside init() above
 
 // ════════════════════════════════════════
 //  INIT — always pull from Firebase first
@@ -1115,13 +1124,24 @@ function applyDB(data) {
   return true;
 }
 
+function showLoadingScreen(msg) {
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('login-screen').style.display   = 'none';
+  const m = document.getElementById('loading-msg');
+  if (m) m.textContent = msg || 'جارٍ تحميل البيانات...';
+}
+
+function showLoginScreen() {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display   = 'flex';
+  document.getElementById('login-user').focus();
+}
+
 (async function init() {
-  // show loading on login screen
-  const loginSub = document.querySelector('.login-sub');
-  if (loginSub) loginSub.textContent = '⏳ جارٍ تحميل البيانات...';
+  showLoadingScreen('جارٍ الاتصال بـ Firebase...');
   setBadge('☁️ جارٍ التحميل...', 'sync-cfg');
 
-  // 1. try Firebase first (always)
+  // 1. try Firebase first — always (blocks until done)
   let fbLoaded = false;
   try {
     const res  = await fetch(FB_URL + '.json');
@@ -1134,7 +1154,7 @@ function applyDB(data) {
     }
   } catch(e) {}
 
-  // 2. fallback to localStorage if Firebase failed
+  // 2. fallback to localStorage if Firebase unavailable
   if (!fbLoaded) {
     try {
       const saved = localStorage.getItem('merchpro_db');
@@ -1144,7 +1164,21 @@ function applyDB(data) {
     setBadge('💾 محفوظ محلياً', 'sync-ok');
   }
 
-  if (loginSub) loginSub.textContent = 'سجّل دخولك للمتابعة';
+  // 3. check existing session
+  const savedSession = sessionStorage.getItem('mp_user');
+  if (savedSession) {
+    try {
+      currentUser = JSON.parse(savedSession);
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('topbar-username').textContent  = currentUser.name;
+      document.getElementById('topbar-avatar').textContent    = currentUser.name.charAt(0);
+      applyRoleAccess();
+      return;
+    } catch { sessionStorage.removeItem('mp_user'); }
+  }
+
+  // 4. show login — data is ready
+  showLoginScreen();
 })();
 
 // ════════════════════════════════════════
