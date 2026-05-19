@@ -1141,10 +1141,13 @@ function showLoginScreen() {
   showLoadingScreen('جارٍ الاتصال بـ Firebase...');
   setBadge('☁️ جارٍ التحميل...', 'sync-cfg');
 
-  // 1. try Firebase first — always (blocks until done)
+  // 1. try Firebase with 6s timeout
   let fbLoaded = false;
   try {
-    const res  = await fetch(FB_URL + '.json');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(FB_URL + '.json', { signal: controller.signal });
+    clearTimeout(timer);
     if (res.ok) {
       const data = await res.json();
       if (applyDB(data)) {
@@ -1152,7 +1155,9 @@ function showLoginScreen() {
         setBadge('☁️ Firebase متصل', 'sync-ok');
       }
     }
-  } catch(e) {}
+  } catch(e) {
+    setBadge('💾 تعذر الاتصال — محلي', 'sync-cfg');
+  }
 
   // 2. fallback to localStorage if Firebase unavailable
   if (!fbLoaded) {
