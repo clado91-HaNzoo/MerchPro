@@ -1194,30 +1194,51 @@ async function fbPush(silent = false) {
 async function fbPull() {
   fbSetStatus('syncing');
   setBadge('☁️ جارٍ الجلب...', 'sync-cfg');
+
+  // ── 1. fetch only ──────────────────────────────
+  let data;
   try {
-    const res  = await fetch(FB_URL + '.json');
-    if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
-    if (!data) { toast('⚠️ لا توجد بيانات في Firebase بعد'); fbSetStatus('ok'); return; }
-    DB = data;
-    if (!DB.coordinators) DB.coordinators = [];
-    localStorage.setItem('merchpro_db', JSON.stringify(DB));
-    fbSetStatus('ok');
-    fbSetLastSync();
-    setBadge('☁️ محفوظ في Firebase', 'sync-ok');
-    document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
-    toast('✅ تم جلب البيانات من Firebase');
-    // refresh current view
-    buildHome();
-    renderVisits();
-    renderProducts();
-    renderCoordinators();
-    buildConfig();
+    const res = await fetch(FB_URL + '.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    data = await res.json();
   } catch (err) {
     fbSetStatus('err');
     setBadge('⚠️ فشل جلب Firebase', 'sync-err');
-    toast('❌ فشل الاتصال بـ Firebase');
+    toast('❌ فشل الاتصال بـ Firebase: ' + err.message);
+    return;
   }
+
+  // ── 2. apply data ──────────────────────────────
+  if (!data) { toast('⚠️ لا توجد بيانات في Firebase بعد'); fbSetStatus('ok'); return; }
+
+  DB = data;
+  if (!DB.coordinators)           DB.coordinators           = [];
+  if (!DB.lists)                  DB.lists                  = {};
+  if (!DB.lists.accounts)         DB.lists.accounts         = [];
+  if (!DB.lists.branches)         DB.lists.branches         = [];
+  if (!DB.lists.brands)           DB.lists.brands           = [];
+  if (!DB.lists.vendors)          DB.lists.vendors          = [];
+  if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
+  if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
+  if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
+  if (!DB.visits)                 DB.visits                 = [];
+  if (!DB.products)               DB.products               = [];
+  if (!DB.moves)                  DB.moves                  = [];
+
+  try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+
+  fbSetStatus('ok');
+  fbSetLastSync();
+  setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+  document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
+  toast('✅ تم جلب البيانات — ' + (DB.coordinators.length) + ' منسق · ' + (DB.products.length) + ' منتج');
+
+  // ── 3. refresh UI (errors here won't block) ────
+  Object.keys(_tabVersion).forEach(k => delete _tabVersion[k]);
+  _listsVersion = -1;
+  _permsVersion = -1;
+  try { buildHome(); } catch(e) {}
+  try { buildConfig(); } catch(e) {}
 }
 
 function fbAutoSync() {
