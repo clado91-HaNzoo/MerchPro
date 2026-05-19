@@ -1140,61 +1140,60 @@ function showLoginScreen() {
 const FB_URL = 'https://merchpro-544a5-default-rtdb.europe-west1.firebasedatabase.app/db';
 
 
-// Safety fallback: if loading takes too long, show login screen anyway
-setTimeout(() => {
-  const ls = document.getElementById('loading-screen');
-  if (ls && ls.style.display !== 'none') {
-    showLoginScreen();
-    setBadge('⚠️ تعذر الاتصال', 'sync-err');
-  }
-}, 8000);
+// ── BULLETPROOF INIT ────────────────────────
+let _appReady = false;
+
+function _showLogin() {
+  if (_appReady) return;
+  _appReady = true;
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display   = 'flex';
+  try { document.getElementById('login-user').focus(); } catch(e) {}
+}
+
+// Hard fallback — always fires after 7s no matter what
+setTimeout(_showLogin, 7000);
+
 (async function init() {
-  showLoadingScreen('جارٍ الاتصال بـ Firebase...');
-  setBadge('☁️ جارٍ التحميل...', 'sync-cfg');
-
-  // 1. try Firebase with 6s timeout
-  let fbLoaded = false;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(FB_URL + '.json', { signal: controller.signal });
-    clearTimeout(timer);
-    if (res.ok) {
-      const data = await res.json();
-      if (applyDB(data)) {
-        fbLoaded = true;
-        setBadge('☁️ Firebase متصل', 'sync-ok');
+    // 1. Firebase fetch with 5s timeout
+    let fbOk = false;
+    try {
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 5000);
+      const res  = await fetch(FB_URL + '.json', { signal: ctrl.signal });
+      if (res.ok) {
+        const data = await res.json();
+        fbOk = applyDB(data);
+        if (fbOk) setBadge('☁️ Firebase متصل', 'sync-ok');
       }
-    }
-  } catch(e) {
-    setBadge('💾 تعذر الاتصال — محلي', 'sync-cfg');
-  }
-
-  // 2. fallback to localStorage if Firebase unavailable
-  if (!fbLoaded) {
-    try {
-      const saved = localStorage.getItem('merchpro_db');
-      if (saved) applyDB(JSON.parse(saved));
     } catch(e) {}
-    seedBuiltinUsers();
-    setBadge('💾 محفوظ محلياً', 'sync-ok');
-  }
 
-  // 3. check existing session
-  const savedSession = sessionStorage.getItem('mp_user');
-  if (savedSession) {
+    // 2. fallback localStorage
+    if (!fbOk) {
+      try { const s = localStorage.getItem('merchpro_db'); if (s) applyDB(JSON.parse(s)); } catch(e) {}
+      seedBuiltinUsers();
+      setBadge('💾 محفوظ محلياً', 'sync-ok');
+    }
+
+    // 3. restore session
     try {
-      currentUser = JSON.parse(savedSession);
-      document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('topbar-username').textContent  = currentUser.name;
-      document.getElementById('topbar-avatar').textContent    = currentUser.name.charAt(0);
-      applyRoleAccess();
-      return;
-    } catch { sessionStorage.removeItem('mp_user'); }
-  }
+      const ss = sessionStorage.getItem('mp_user');
+      if (ss) {
+        currentUser = JSON.parse(ss);
+        _appReady = true;
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('topbar-username').textContent  = currentUser.name;
+        document.getElementById('topbar-avatar').textContent    = currentUser.name.charAt(0);
+        applyRoleAccess();
+        return;
+      }
+    } catch(e) { sessionStorage.removeItem('mp_user'); }
 
-  // 4. show login — data is ready
-  showLoginScreen();
+  } catch(e) {}
+
+  // 4. show login
+  _showLogin();
 })();
 
 // ════════════════════════════════════════
