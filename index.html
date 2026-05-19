@@ -955,9 +955,18 @@ async function doLogin() {
   const errEl    = document.getElementById('login-err');
   errEl.style.display = 'none';
 
-  if (!username || !password) { errEl.style.display = 'block'; errEl.textContent = 'أدخل اسم المستخدم وكلمة المرور'; return; }
+  if (!username || !password) { errEl.style.display = 'block'; errEl.textContent = 'أدخل الاسم وكلمة المرور'; return; }
 
-  const hash = await sha256(password);
+  let hash;
+  try {
+    hash = await sha256(password);
+  } catch(e) {
+    // fallback: simple hash for older browsers
+    hash = btoa(unescape(encodeURIComponent(password))).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0).toString(16);
+    errEl.style.display = 'block';
+    errEl.textContent = 'خطأ في التشفير: ' + e.message;
+    return;
+  }
 
   // check admin (use custom hash if set, else default)
   const adminHash = DB.settings?.adminHash || ADMIN_PASS_HASH;
