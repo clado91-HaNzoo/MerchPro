@@ -1112,8 +1112,38 @@ async function changeAdminPass() {
       setBadge('⚠️ خطأ في البيانات', 'sync-err');
     }
   } else {
-    // first run — seed built-in users
+    // first run — seed built-in users then auto-pull from Firebase
     seedBuiltinUsers();
+    setBadge('☁️ جارٍ تحميل البيانات...', 'sync-cfg');
+    (async () => {
+      try {
+        const res  = await fetch(FB_URL + '.json');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (data && (data.coordinators?.length || data.products?.length || data.lists?.branches?.length)) {
+          DB = data;
+          if (!DB.coordinators)           DB.coordinators           = [];
+          if (!DB.lists)                  DB.lists                  = {};
+          if (!DB.lists.accounts)         DB.lists.accounts         = [];
+          if (!DB.lists.branches)         DB.lists.branches         = [];
+          if (!DB.lists.brands)           DB.lists.brands           = [];
+          if (!DB.lists.vendors)          DB.lists.vendors          = [];
+          if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
+          if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
+          if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
+          if (!DB.visits)                 DB.visits                 = [];
+          if (!DB.products)               DB.products               = [];
+          if (!DB.moves)                  DB.moves                  = [];
+          try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+          setBadge('☁️ تم تحميل البيانات', 'sync-ok');
+          seedBuiltinUsers();
+        } else {
+          setBadge('📂 لا توجد بيانات', 'sync-cfg');
+        }
+      } catch(e) {
+        setBadge('📂 لا توجد بيانات', 'sync-cfg');
+      }
+    })();
   }
 })();
 
