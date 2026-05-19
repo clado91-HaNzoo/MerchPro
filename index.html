@@ -2826,7 +2826,17 @@ function openVisitForm(idx = -1) {
   const v = isEdit ? DB.visits[idx] : null;
 
   document.getElementById('vf-title').textContent = isEdit ? '✏️ تعديل الزيارة' : '➕ تسجيل زيارة جديدة';
-  document.getElementById('vf-coordinator').value = v?.coordinator || '';
+  // auto-fill coordinator from logged-in user
+  const defaultCoord = v?.coordinator || currentUser?.name || '';
+  document.getElementById('vf-coordinator').value = defaultCoord;
+  // lock field if coordinator (not admin/supervisor)
+  const coordInput = document.getElementById('vf-coordinator');
+  const isCoord = currentUser?.role !== 'admin' && currentUser?.name?.toLowerCase() !== 'martina' &&
+                  currentUser?.role !== 'supervisor';
+  coordInput.readOnly = isCoord;
+  coordInput.style.background = isCoord ? 'var(--bg)' : '';
+  coordInput.style.color = isCoord ? 'var(--purple-d)' : '';
+  coordInput.style.fontWeight = isCoord ? '600' : '';
   // vendor, account & branch selects are populated below after building options
   const defaultDate = v?.date || new Date().toISOString().slice(0, 10);
   document.getElementById('vf-visit-day').value = v?.visitDay || new Date(defaultDate).getDate();
