@@ -1090,61 +1090,58 @@ async function changeAdminPass() {
 })();
 
 // ════════════════════════════════════════
-//  INIT — load from localStorage
+//  INIT — always pull from Firebase first
 // ════════════════════════════════════════
-(function init() {
-  const saved = localStorage.getItem('merchpro_db');
-  if (saved) {
-    try {
-      DB = JSON.parse(saved);
-      if (!DB.coordinators) DB.coordinators = [];
-      if (!DB.lists) DB.lists = { vendors: [], branches: [], brands: [] };
-      if (!DB.lists.vendors)         DB.lists.vendors         = [];
-      if (!DB.lists.branches)        DB.lists.branches        = [];
-      if (!DB.lists.brands)          DB.lists.brands          = [];
-      if (!DB.lists.accounts)        DB.lists.accounts        = [];
-      if (!DB.lists.accountBranches) DB.lists.accountBranches = {};
-      if (!DB.lists.accountCodes)    DB.lists.accountCodes    = {};
-      if (!DB.lists.branchCodes)     DB.lists.branchCodes     = {};
-      seedBuiltinUsers();
-      setBadge('💾 محفوظ محلياً', 'sync-ok');
-    } catch (e) {
-      setBadge('⚠️ خطأ في البيانات', 'sync-err');
-    }
-  } else {
-    // first run — seed built-in users then auto-pull from Firebase
-    seedBuiltinUsers();
-    setBadge('☁️ جارٍ تحميل البيانات...', 'sync-cfg');
-    (async () => {
-      try {
-        const res  = await fetch(FB_URL + '.json');
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        if (data && (data.coordinators?.length || data.products?.length || data.lists?.branches?.length)) {
-          DB = data;
-          if (!DB.coordinators)           DB.coordinators           = [];
-          if (!DB.lists)                  DB.lists                  = {};
-          if (!DB.lists.accounts)         DB.lists.accounts         = [];
-          if (!DB.lists.branches)         DB.lists.branches         = [];
-          if (!DB.lists.brands)           DB.lists.brands           = [];
-          if (!DB.lists.vendors)          DB.lists.vendors          = [];
-          if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
-          if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
-          if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
-          if (!DB.visits)                 DB.visits                 = [];
-          if (!DB.products)               DB.products               = [];
-          if (!DB.moves)                  DB.moves                  = [];
-          try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
-          setBadge('☁️ تم تحميل البيانات', 'sync-ok');
-          seedBuiltinUsers();
-        } else {
-          setBadge('📂 لا توجد بيانات', 'sync-cfg');
-        }
-      } catch(e) {
-        setBadge('📂 لا توجد بيانات', 'sync-cfg');
+function applyDB(data) {
+  if (!data) return false;
+  DB = data;
+  if (!DB.coordinators)           DB.coordinators           = [];
+  if (!DB.visits)                 DB.visits                 = [];
+  if (!DB.products)               DB.products               = [];
+  if (!DB.moves)                  DB.moves                  = [];
+  if (!DB.lists)                  DB.lists                  = {};
+  if (!DB.lists.vendors)          DB.lists.vendors          = [];
+  if (!DB.lists.branches)         DB.lists.branches         = [];
+  if (!DB.lists.brands)           DB.lists.brands           = [];
+  if (!DB.lists.accounts)         DB.lists.accounts         = [];
+  if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
+  if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
+  if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
+  seedBuiltinUsers();
+  try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+  return true;
+}
+
+(async function init() {
+  // show loading on login screen
+  const loginSub = document.querySelector('.login-sub');
+  if (loginSub) loginSub.textContent = '⏳ جارٍ تحميل البيانات...';
+  setBadge('☁️ جارٍ التحميل...', 'sync-cfg');
+
+  // 1. try Firebase first (always)
+  let fbLoaded = false;
+  try {
+    const res  = await fetch(FB_URL + '.json');
+    if (res.ok) {
+      const data = await res.json();
+      if (applyDB(data)) {
+        fbLoaded = true;
+        setBadge('☁️ Firebase متصل', 'sync-ok');
       }
-    })();
+    }
+  } catch(e) {}
+
+  // 2. fallback to localStorage if Firebase failed
+  if (!fbLoaded) {
+    try {
+      const saved = localStorage.getItem('merchpro_db');
+      if (saved) applyDB(JSON.parse(saved));
+    } catch(e) {}
+    seedBuiltinUsers();
+    setBadge('💾 محفوظ محلياً', 'sync-ok');
   }
+
+  if (loginSub) loginSub.textContent = 'سجّل دخولك للمتابعة';
 })();
 
 // ════════════════════════════════════════
