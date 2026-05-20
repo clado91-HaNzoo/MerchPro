@@ -222,8 +222,7 @@ textarea.form-input { resize: vertical; }
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nav-item active" onclick="switchTab('import',this)">📥 استيراد إكسل</div>
-  <div class="nav-item" onclick="switchTab('home',this)">🏠 الرئيسية</div>
+  <div class="nav-item active" onclick="switchTab('home',this)">🏠 الرئيسية</div>
   <div class="nav-item" onclick="switchTab('visits',this)">📋 الزيارات</div>
   <div class="nav-item" onclick="switchTab('products',this)">📦 المنتجات</div>
   <div class="nav-item" onclick="switchTab('stock',this)">🏪 المخزون</div>
@@ -232,75 +231,9 @@ textarea.form-input { resize: vertical; }
 </nav>
 
 <!-- ═══════════════ TAB: IMPORT ═══════════════ -->
-<div class="content" id="tab-import">
-  <div class="steps">
-    <div class="step active" id="step1">1. رفع الملف</div>
-    <div class="step"        id="step2">2. ربط الأعمدة</div>
-    <div class="step"        id="step3">3. حفظ البيانات</div>
-  </div>
-
-  <!-- phase 1: upload -->
-  <div id="phase-upload">
-    <div class="drop-zone" id="drop-zone"
-         onclick="document.getElementById('file-input').click()"
-         ondragover="event.preventDefault();this.classList.add('over')"
-         ondragleave="this.classList.remove('over')"
-         ondrop="handleDrop(event)">
-      <div class="dz-icon">📊</div>
-      <div class="dz-title">اسحب ملف الإكسل هنا أو اضغط للاختيار</div>
-      <div class="dz-sub">يدعم .xlsx · .xls · .csv</div>
-    </div>
-    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
-
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="loadDemo()">▶ تجربة ببيانات تجريبية</button>
-      <button class="btn btn-green" onclick="downloadTemplate()">⬇ تحميل قالب Excel جاهز</button>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <div class="card-title">📋 الأعمدة المتوقعة في ملف الإكسل</div>
-      <div class="tag-row"><strong style="min-width:130px">زيارات</strong><span style="color:var(--txt2)">المنسق · الفرع · Vendor · Product_Name_EN · Column · Mon · Year · Quantity · display status · يوم الزيارة · Account · Date · Alarm</span></div>
-      <div class="tag-row"><strong style="min-width:130px">نقاط البيع</strong><span style="color:var(--txt2)">اسم النقطة · المنطقة · النوع</span></div>
-      <div class="tag-row"><strong style="min-width:130px">منتجات</strong><span style="color:var(--txt2)">Brand · Code · Item</span></div>
-      <div class="tag-row"><strong style="min-width:130px">مخزون</strong><span style="color:var(--txt2)">منتج · كمية · نوع الحركة · تاريخ</span></div>
-    </div>
-  </div>
-
-  <!-- phase 2: map -->
-  <div id="phase-map" class="hidden">
-    <div class="card">
-      <div class="card-title">📄 الأوراق المكتشفة</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="sheet-tabs"></div>
-      <div class="preview-wrap" id="preview-wrap"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">🔗 ربط الأوراق</div>
-      <div id="col-map-area"></div>
-      <div id="map-warning" style="display:none;margin-top:10px;padding:10px;background:var(--amber-l);border-radius:var(--radius-sm);font-size:12px;color:#633806"></div>
-    </div>
-    <div id="duplicate-warning" style="display:none;margin-bottom:14px;padding:12px;background:var(--amber-l);border-radius:var(--radius);font-size:13px;color:#633806"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn" onclick="resetImport()">↩ رجوع</button>
-      <button class="btn btn-green" onclick="doImport()" id="btn-import">✅ تأكيد واستيراد</button>
-    </div>
-  </div>
-
-  <!-- phase 3: done -->
-  <div id="phase-done" class="hidden">
-    <div class="card" style="text-align:center;padding:36px">
-      <div style="font-size:48px;margin-bottom:12px">✅</div>
-      <div style="font-size:17px;font-weight:700;margin-bottom:8px">تم الاستيراد بنجاح!</div>
-      <div id="import-summary" style="font-size:13px;color:var(--txt2);margin-bottom:20px"></div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="switchTab('home',document.querySelectorAll('.nav-item')[1])">🏠 عرض الداشبورد</button>
-        <button class="btn" onclick="resetImport()">📥 استيراد ملف آخر</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ═══════════════ TAB: HOME ═══════════════ -->
-<div class="content hidden" id="tab-home">
+<div class="content" id="tab-home">
 
   <!-- Row 1: visits metrics -->
   <div class="grid4" id="home-metrics">
@@ -402,54 +335,15 @@ textarea.form-input { resize: vertical; }
 <!-- ═══════════════ TAB: STOCK ═══════════════ -->
 <div class="content hidden" id="tab-stock">
 
-  <!-- row 1: current levels -->
-  <div class="grid2" style="margin-bottom:0">
-    <div class="card">
-      <div class="card-title">📦 الرصيد الحالي</div>
-      <div id="stock-current"></div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="justify-content:space-between">
-        <span>📝 سجل الحركات</span>
-        <button class="btn btn-primary btn-sm" onclick="openMoveForm()">➕ حركة جديدة</button>
-      </div>
-      <div class="filter-bar" style="margin-bottom:8px">
-        <input class="form-input" id="m-search" placeholder="بحث بالمنتج أو الباتش..." oninput="renderStock()" style="min-width:0;flex:1">
-        <select class="form-select" id="m-type" onchange="renderStock()" style="max-width:140px;min-width:0">
-          <option value="">كل الأنواع</option>
-          <option>رصيد حالي</option><option>توزيع</option><option>تعبئة</option><option>مرتجع</option><option>هالك</option>
-        </select>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>المنتج</th><th>رقم الباتش</th><th>الكمية</th><th>النوع</th><th>التاريخ</th></tr></thead>
-          <tbody id="stock-moves"></tbody>
-        </table>
-      </div>
-      <div class="pagination" id="stock-pagination" style="margin-top:10px;justify-content:flex-end"></div>
-    </div>
+  <div class="filter-bar" style="margin-bottom:14px">
+    <input class="form-input" id="st-search" placeholder="بحث بالفرع أو المنتج..." oninput="renderStock()" style="flex:1;min-width:0">
+    <select class="form-select" id="st-account" onchange="renderStock()" style="max-width:180px;min-width:0">
+      <option value="">كل الـ Accounts</option>
+    </select>
   </div>
 
-  <!-- row 2: batch master -->
-  <div class="card" style="margin-top:14px">
-    <div class="card-title" style="justify-content:space-between">
-      <span>🏷️ سجل الباتشات</span>
-      <div style="display:flex;gap:8px">
-        <input class="form-input" id="b-search" placeholder="بحث..." oninput="renderBatches()" style="width:180px;font-size:12px;padding:5px 8px">
-        <button class="btn btn-primary btn-sm" onclick="openBatchForm()">➕ باتش جديد</button>
-      </div>
-    </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>رقم الباتش</th><th>رقم الصنف</th><th>تاريخ التصنيع</th>
-          <th>تاريخ الانتهاء</th><th>أفضل قبل</th><th>كود الحالة</th><th>حالة الباتش</th><th></th>
-        </tr></thead>
-        <tbody id="batches-tbody"></tbody>
-      </table>
-    </div>
-    <div class="pagination" id="batches-pagination" style="margin-top:10px;justify-content:flex-end"></div>
-  </div>
+  <div id="stock-summary" style="margin-bottom:10px;font-size:12px;color:var(--txt3)"></div>
+  <div id="stock-cards"></div>
 
 </div>
 
@@ -581,7 +475,7 @@ textarea.form-input { resize: vertical; }
 
   <div class="card">
     <div class="card-title">🔐 حساب Admin</div>
-    <div style="font-size:12px;color:var(--txt2);margin-bottom:10px">Username: <strong>admin</strong> &nbsp;·&nbsp; كلمة المرور: <strong>147852</strong></div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:10px">Username: <strong>admin</strong> &nbsp;·&nbsp; كلمة المرور: <strong id="admin-pass-display">••••••••</strong></div>
     <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div>
         <div style="font-size:11px;color:var(--txt2);margin-bottom:4px">كلمة المرور الجديدة</div>
@@ -609,14 +503,14 @@ textarea.form-input { resize: vertical; }
 
 
   <div class="card">
-    <div class="card-title">🔥 Firebase Realtime Database</div>
+    <div class="card-title">🟢 Supabase Database</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
       <div id="fb-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--txt3);flex-shrink:0"></div>
       <span id="fb-status-txt" style="font-size:13px;color:var(--txt2)">غير متصل</span>
       <span style="font-size:11px;color:var(--txt3);margin-right:auto" id="fb-last-sync"></span>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="fbPush()">☁️ رفع البيانات للسحابة</button>
+      <button class="btn btn-primary" onclick="testAndPush()">☁️ رفع البيانات للسحابة</button>
       <button class="btn" onclick="fbPull()">⬇ جلب البيانات من السحابة</button>
       
       <button class="btn btn-green" onclick="fbAutoSync()" id="btn-autosync">🔄 تفعيل المزامنة التلقائية</button>
@@ -728,58 +622,6 @@ textarea.form-input { resize: vertical; }
   </div>
 </div>
 
-<!-- Batch Form Modal -->
-<div class="modal-overlay hidden" id="batch-form-overlay" onclick="closeBatchForm()">
-  <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
-    <div class="modal-title" id="bf-title">➕ إضافة باتش جديد</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-row" style="margin:0">
-        <label class="form-label">رقم الباتش <span style="color:var(--red)">*</span></label>
-        <input class="form-input" id="bf-batch" placeholder="مثال: 10-2022">
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">رقم الصنف (Item No)</label>
-        <input class="form-input" id="bf-item" placeholder="مثال: H-ADM001" list="dl-products">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
-      <div class="form-row" style="margin:0">
-        <label class="form-label">تاريخ التصنيع</label>
-        <input class="form-input" id="bf-mfg" type="date">
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">تاريخ الانتهاء</label>
-        <input class="form-input" id="bf-exp" type="date">
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">أفضل قبل (Best Before)</label>
-        <input class="form-input" id="bf-best" type="date">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
-      <div class="form-row" style="margin:0">
-        <label class="form-label">تاريخ الرف (Shelf Advice)</label>
-        <input class="form-input" id="bf-shelf" type="date">
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">كود حالة الباتش</label>
-        <input class="form-input" id="bf-disp-code" placeholder="مثال: QA-01">
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">حالة الباتش</label>
-        <select class="form-select" id="bf-disp-status">
-          <option value="">—</option>
-          <option>مقبول</option><option>مرفوض</option><option>قيد المراجعة</option><option>موقوف</option>
-        </select>
-      </div>
-    </div>
-    <div id="bf-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-l);border-radius:var(--radius-sm);font-size:12px;color:var(--red)"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeBatchForm()">إلغاء</button>
-      <button class="btn btn-green" onclick="saveBatch()">💾 حفظ الباتش</button>
-    </div>
-  </div>
-</div>
 
 <!-- Stock Move Form Modal -->
 <div class="modal-overlay hidden" id="move-form-overlay" onclick="closeMoveForm()">
@@ -790,11 +632,6 @@ textarea.form-input { resize: vertical; }
         <label class="form-label">المنتج <span style="color:var(--red)">*</span></label>
         <input class="form-input" id="mf-product" placeholder="اسم المنتج" list="dl-products-move" autocomplete="off">
         <datalist id="dl-products-move"></datalist>
-      </div>
-      <div class="form-row" style="margin:0">
-        <label class="form-label">رقم الباتش</label>
-        <input class="form-input" id="mf-batch" placeholder="مثال: 10-2022" list="dl-batches-move" autocomplete="off">
-        <datalist id="dl-batches-move"></datalist>
       </div>
       <div class="form-row" style="margin:0">
         <label class="form-label">نوع الحركة <span style="color:var(--red)">*</span></label>
@@ -932,13 +769,57 @@ let currentUser = null; // { username, name, role: 'admin'|'coordinator', coordI
 
 // built-in users (always exist, managed here not in coordinators UI)
 const BUILTIN_USERS = [
-  { name: 'martina', passwordHash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'supervisor', status: 'نشط' },
+  // supervisors
+  { name: 'martina',                    passwordHash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'supervisor',   status: 'نشط' },
+  { name: 'باسم عادل فيصل',            role: 'supervisor',   status: 'نشط' },
+  // coordinators — default password: 123
+  { name: 'احمد خضيري',                role: 'coordinator',  status: 'نشط' },
+  { name: 'مروان محسن',                role: 'coordinator',  status: 'نشط' },
+  { name: 'هبه رمضان',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'احمد درديري',               role: 'coordinator',  status: 'نشط' },
+  { name: 'نبوية عبداللاة',            role: 'coordinator',  status: 'نشط' },
+  { name: 'شيرين رمضان',               role: 'coordinator',  status: 'نشط' },
+  { name: 'اسماء شعبان',               role: 'coordinator',  status: 'نشط' },
+  { name: 'السيد الكومى',              role: 'coordinator',  status: 'نشط' },
+  { name: 'خلود محمود رياض',           role: 'coordinator',  status: 'نشط' },
+  { name: 'سها سيد',                   role: 'coordinator',  status: 'نشط' },
+  { name: 'ابراهيم محمد',              role: 'coordinator',  status: 'نشط' },
+  { name: 'محمد رمضان',                role: 'coordinator',  status: 'نشط' },
+  { name: 'احمد بيومي محمد',           role: 'coordinator',  status: 'نشط' },
+  { name: 'علي جلال علي',              role: 'coordinator',  status: 'نشط' },
+  { name: 'حسن السيد',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'صالح رمضان لطفي',           role: 'coordinator',  status: 'نشط' },
+  { name: 'ولاء محمد',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'محمد صابر',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'محمد صبري محمد',            role: 'coordinator',  status: 'نشط' },
+  { name: 'هناء مدحت',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'عمرو عادل ابراهيم',         role: 'coordinator',  status: 'نشط' },
+  { name: 'هاجر ياسين',                role: 'coordinator',  status: 'نشط' },
+  { name: 'مى محمد',                   role: 'coordinator',  status: 'نشط' },
+  { name: 'ايمن عمرو',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'هبه السيد زكي',             role: 'coordinator',  status: 'نشط' },
+  { name: 'محمد طاهر عبد اللطيف',      role: 'coordinator',  status: 'نشط' },
+  { name: 'بهاء صبحى',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'ندي جمال',                  role: 'coordinator',  status: 'نشط' },
+  { name: 'محمود اشرف',                role: 'coordinator',  status: 'نشط' },
+  { name: 'مصطفى حسين',               role: 'coordinator',  status: 'نشط' },
+  { name: 'بار تايم',                  role: 'coordinator',  status: 'نشط' },
+  { name: 'حسن محمد',                  role: 'coordinator',  status: 'نشط' },
+  { name: 'عبد الرحمن مصطفى',          role: 'coordinator',  status: 'نشط' },
+  { name: 'محمد حسونه حنفي',           role: 'coordinator',  status: 'نشط' },
+  { name: 'احمد السيد فؤاد',           role: 'coordinator',  status: 'نشط' },
+  { name: 'ميار وسام',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'صلاح جمال',                 role: 'coordinator',  status: 'نشط' },
+  { name: 'احمد محمود احمد محمود',     role: 'coordinator',  status: 'نشط' },
+  { name: 'مروه حمد',                  role: 'coordinator',  status: 'نشط' },
+  { name: 'مي ابراهيم سيد',            role: 'coordinator',  status: 'نشط' },
+  { name: 'يوسف احمد جعفر',            role: 'coordinator',  status: 'نشط' },
 ];
 
 function seedBuiltinUsers() {
   if (!DB.coordinators) DB.coordinators = [];
   BUILTIN_USERS.forEach(u => {
-    const exists = DB.coordinators.some(c => c.name.toLowerCase() === u.name.toLowerCase());
+    const exists = DB.coordinators.some(c => c.name.trim().toLowerCase() === u.name.trim().toLowerCase());
     if (!exists) DB.coordinators.push({ ...u, code: '', area: '', phone: '', vendor: '', notes: '' });
   });
 }
@@ -960,11 +841,34 @@ function doLogin() {
     return;
   }
 
-  // check admin — plain text compare
-  const ADMIN_PLAIN = '147852';
-  if (username === 'admin' && password === ADMIN_PLAIN) {
-    currentUser = { username: 'admin', name: 'المدير', role: 'admin' };
-    onLoginSuccess();
+  // check admin — stored hash first, fallback to hardcoded
+  if (username === 'admin') {
+    const storedHash = DB.settings?.adminHash;
+    if (storedHash) {
+      // password was changed — verify against stored hash
+      sha256(password).then(hash => {
+        if (hash === storedHash) {
+          currentUser = { username: 'admin', name: 'المدير', role: 'admin' };
+          onLoginSuccess();
+        } else {
+          const errEl = document.getElementById('login-err');
+          errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
+          errEl.style.display = 'block';
+          document.getElementById('login-pass').value = '';
+        }
+      });
+      return;
+    }
+    // no stored hash — use hardcoded default
+    if (password === '147852') {
+      currentUser = { username: 'admin', name: 'المدير', role: 'admin' };
+      onLoginSuccess();
+      return;
+    }
+    const errEl = document.getElementById('login-err');
+    errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
     return;
   }
 
@@ -1001,9 +905,8 @@ function doLogin() {
         currentUser = { username: c.name, name: c.name, role, coordIdx: idx2 };
         onLoginSuccess();
       } else {
-        errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
-        errEl.style.display = 'block';
-        document.getElementById('login-pass').value = '';
+        // not found locally — try pulling from Supabase once (catches newly added coordinators)
+        tryLoginAfterSync(username, password, hash, errEl);
       }
     }).catch(() => {
       errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
@@ -1012,6 +915,42 @@ function doLogin() {
     return;
   }
 
+  errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
+  errEl.style.display = 'block';
+  document.getElementById('login-pass').value = '';
+}
+
+async function tryLoginAfterSync(username, password, hash, errEl) {
+  errEl.textContent = '🔄 جارٍ التحقق من السحابة...';
+  errEl.style.display = 'block';
+  try {
+    const res = await fetch(SB_URL + '?id=eq.main&select=data', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      const cloudCoords = rows[0]?.data?.coordinators || [];
+      // merge cloud coordinators into local DB
+      cloudCoords.forEach(cc => {
+        const exists = DB.coordinators.some(c => c.name.toLowerCase() === cc.name.toLowerCase());
+        if (!exists) DB.coordinators.push(cc);
+      });
+      try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+      // retry login
+      const idx = DB.coordinators.findIndex(c =>
+        (c.name||'').toLowerCase() === username &&
+        c.status !== 'غير نشط' &&
+        ((!c.passwordHash && password === '123') || c.passwordHash === hash)
+      );
+      if (idx >= 0) {
+        const c = DB.coordinators[idx];
+        const role = c.role === 'supervisor' ? 'supervisor' : 'coordinator';
+        currentUser = { username: c.name, name: c.name, role, coordIdx: idx };
+        onLoginSuccess();
+        return;
+      }
+    }
+  } catch(e) {}
   errEl.textContent = 'الاسم أو كلمة المرور غير صحيحة';
   errEl.style.display = 'block';
   document.getElementById('login-pass').value = '';
@@ -1111,6 +1050,8 @@ async function changeAdminPass() {
 
   document.getElementById('admin-new-pass').value    = '';
   document.getElementById('admin-confirm-pass').value = '';
+  const disp = document.getElementById('admin-pass-display');
+  if (disp) disp.textContent = '••••••••';
   showMsg('✅ تم تغيير كلمة مرور Admin', 'g');
 
   function showMsg(text, type) {
@@ -1125,7 +1066,7 @@ async function changeAdminPass() {
 // session restore is now handled inside init() above
 
 // ════════════════════════════════════════
-//  INIT — always pull from Firebase first
+//  INIT — always pull from Supabase first
 // ════════════════════════════════════════
 function applyDB(data) {
   if (!data) return false;
@@ -1160,30 +1101,62 @@ function showLoginScreen() {
   document.getElementById('login-user').focus();
 }
 
-const FB_URL = 'https://merchpro-544a5-default-rtdb.europe-west1.firebasedatabase.app/db';
+const SB_URL = 'https://zbgiaicsszaabmbwdpek.supabase.co/rest/v1/app_data';
+const SB_KEY = 'sb_publishable_STS3TfQu8ulEvkQVdC765w_7NG6zCir';
+const SB_HEADERS = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'resolution=merge-duplicates,return=minimal'
+};
 
 
-(function init() {
+function applyLoadedDB() {
+  if (!DB.coordinators)           DB.coordinators           = [];
+  if (!DB.lists)                  DB.lists                  = {};
+  if (!DB.lists.vendors)          DB.lists.vendors          = [];
+  if (!DB.lists.branches)         DB.lists.branches         = [];
+  if (!DB.lists.brands)           DB.lists.brands           = [];
+  if (!DB.lists.accounts)         DB.lists.accounts         = [];
+  if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
+  if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
+  if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
+  seedBuiltinUsers();
+}
+
+(async function init() {
+  // show loading screen while we fetch from cloud
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('login-screen').style.display   = 'none';
+  const msgEl = document.getElementById('loading-msg');
+
   const saved = localStorage.getItem('merchpro_db');
   if (saved) {
     try {
       DB = JSON.parse(saved);
-      if (!DB.coordinators)           DB.coordinators           = [];
-      if (!DB.lists)                  DB.lists                  = {};
-      if (!DB.lists.vendors)          DB.lists.vendors          = [];
-      if (!DB.lists.branches)         DB.lists.branches         = [];
-      if (!DB.lists.brands)           DB.lists.brands           = [];
-      if (!DB.lists.accounts)         DB.lists.accounts         = [];
-      if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
-      if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
-      if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
-      seedBuiltinUsers();
+      applyLoadedDB();
       setBadge('💾 محفوظ محلياً', 'sync-ok');
     } catch(e) {
+      applyLoadedDB();
       setBadge('⚠️ خطأ في البيانات', 'sync-err');
     }
   } else {
-    seedBuiltinUsers();
+    // جهاز جديد — جلب من Supabase
+    if (msgEl) msgEl.textContent = '🌐 جارٍ جلب البيانات من السحابة...';
+    try {
+      const res = await fetch(SB_URL + '?id=eq.main&select=data', {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows[0]?.data) {
+          DB = rows[0].data;
+          try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+          setBadge('☁️ تم جلب البيانات من Supabase', 'sync-ok');
+        }
+      }
+    } catch(e) { /* no internet — continue with empty DB */ }
+    applyLoadedDB();
   }
 
   // restore session if exists
@@ -1191,12 +1164,19 @@ const FB_URL = 'https://merchpro-544a5-default-rtdb.europe-west1.firebasedatabas
   if (ss) {
     try {
       currentUser = JSON.parse(ss);
-      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display   = 'none';
       document.getElementById('topbar-username').textContent = currentUser.name;
       document.getElementById('topbar-avatar').textContent   = currentUser.name.charAt(0);
       applyRoleAccess();
+      return;
     } catch { sessionStorage.removeItem('mp_user'); }
   }
+
+  // show login
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display   = 'flex';
+  document.getElementById('login-user').focus();
 })();
 
 // ════════════════════════════════════════
@@ -1217,7 +1197,7 @@ function saveLocal() {
   localStorage.setItem('merchpro_db', JSON.stringify(DB));
   setBadge('💾 محفوظ محلياً', 'sync-ok');
   markDirty();
-  if (_autoSync) fbPush(true);
+  fbPush(true); // always push silently on every save
 }
 
 function getStorageKB() {
@@ -1233,11 +1213,11 @@ function fbSetStatus(state) {
   const txt = document.getElementById('fb-status-txt');
   const urlEl = document.getElementById('fb-url-display');
   if (!dot) return;
-  if (urlEl) urlEl.textContent = FB_URL + '.json';
+  if (urlEl) urlEl.textContent = SB_URL;
   const map = {
-    ok:      { color:'var(--green)',  label:'متصل — Firebase نشط' },
+    ok:      { color:'var(--green)',  label:'متصل — Supabase نشط' },
     syncing: { color:'var(--amber)',  label:'جارٍ المزامنة...' },
-    err:     { color:'var(--red)',    label:'خطأ في الاتصال بـ Firebase' },
+    err:     { color:'var(--red)',    label:'خطأ في الاتصال بـ Supabase' },
     off:     { color:'var(--txt3)',   label:'غير متصل' },
   };
   const s = map[state] || map.off;
@@ -1250,25 +1230,91 @@ function fbSetLastSync() {
   if (el) el.textContent = 'آخر مزامنة: ' + new Date().toLocaleTimeString('ar-EG');
 }
 
+async function testAndPush() {
+  toast('🔄 جارٍ الاتصال بـ Supabase...');
+  try {
+    const res = await fetch(SB_URL + '?id=eq.main&select=id', { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+    if (res.ok) {
+      toast('✅ Supabase متصل — جارٍ الرفع...');
+      await fbPush(false);
+    } else {
+      toast('❌ Supabase error: ' + res.status);
+    }
+  } catch(e) {
+    toast('❌ خطأ: ' + e.message);
+  }
+}
+
+function ensureVisitIds(visits) {
+  visits.forEach(v => {
+    if (!v.id) v.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  });
+}
+
+function mergeVisits(local, cloud) {
+  // by this point all local visits should have IDs (ensureVisitIds was called)
+  // ID-based dedup: local wins over cloud for same id
+  const map = new Map();
+  (cloud || []).forEach(v => { if (v.id) map.set(v.id, v); });
+  (local || []).forEach(v => { if (v.id) map.set(v.id, v); });
+
+  // content-based dedup for any remaining no-id visits (cloud legacy)
+  const noIdMap = new Map();
+  [...(cloud || []).filter(v => !v.id), ...(local || []).filter(v => !v.id)].forEach(v => {
+    const key = [v.coordinator, v.date, v.branch, v.productNameEN, v.units].join('|');
+    if (!noIdMap.has(key)) noIdMap.set(key, v);
+  });
+
+  return [...map.values(), ...noIdMap.values()];
+}
+
 async function fbPush(silent = false) {
   fbSetStatus('syncing');
   if (!silent) setBadge('☁️ جارٍ الرفع...', 'sync-cfg');
   try {
-    const res = await fetch(FB_URL + '.json', {
-      method:  'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(DB)
+    // 1. pull cloud first to merge visits
+    // 1a. assign stable IDs to any local visits that don't have one yet
+    ensureVisitIds(DB.visits);
+    try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+
+    // 1b. fetch cloud visits
+    let cloudVisits = [];
+    try {
+      const r = await fetch(SB_URL + '?id=eq.main&select=data', {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      });
+      if (r.ok) {
+        const rows = await r.json();
+        cloudVisits = rows[0]?.data?.visits || [];
+      }
+    } catch(e) { /* offline — push local only */ }
+
+    // 2. merge (now all local have stable IDs — no duplicates)
+    const merged = mergeVisits(DB.visits, cloudVisits);
+    ensureVisitIds(merged); // assign IDs to any remaining cloud legacy visits
+    const payload = { ...DB, visits: merged };
+
+    // 3. push merged data
+    const res = await fetch(SB_URL, {
+      method:  'POST',
+      headers: SB_HEADERS,
+      body:    JSON.stringify({ id: 'main', data: payload, updated_at: new Date().toISOString() })
     });
     if (!res.ok) throw new Error(res.status);
+
+    // 4. update local DB with merged visits
+    DB.visits = merged;
+    try { localStorage.setItem('merchpro_db', JSON.stringify(DB)); } catch(e) {}
+
     fbSetStatus('ok');
     fbSetLastSync();
-    setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+    setBadge('☁️ محفوظ في Supabase', 'sync-ok');
     document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
-    if (!silent) toast('✅ تم رفع البيانات لـ Firebase');
+    if (!silent) toast('✅ تم رفع البيانات — ' + merged.length + ' زيارة في السحابة');
   } catch (err) {
     fbSetStatus('err');
-    setBadge('⚠️ فشل رفع Firebase', 'sync-err');
-    if (!silent) toast('❌ فشل الاتصال بـ Firebase');
+    setBadge('⚠️ فشل رفع Supabase', 'sync-err');
+    if (!silent) toast('❌ فشل الاتصال بـ Supabase');
   }
 }
 
@@ -1279,20 +1325,27 @@ async function fbPull() {
   // ── 1. fetch only ──────────────────────────────
   let data;
   try {
-    const res = await fetch(FB_URL + '.json');
+    const res = await fetch(SB_URL + '?id=eq.main&select=data', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    data = await res.json();
+    const rows = await res.json();
+    data = rows[0]?.data ?? null;
   } catch (err) {
     fbSetStatus('err');
-    setBadge('⚠️ فشل جلب Firebase', 'sync-err');
-    toast('❌ فشل الاتصال بـ Firebase: ' + err.message);
+    setBadge('⚠️ فشل جلب Supabase', 'sync-err');
+    toast('❌ فشل الاتصال بـ Supabase: ' + err.message);
     return;
   }
 
   // ── 2. apply data ──────────────────────────────
-  if (!data) { toast('⚠️ لا توجد بيانات في Firebase بعد'); fbSetStatus('ok'); return; }
+  if (!data) { toast('⚠️ لا توجد بيانات في Supabase بعد'); fbSetStatus('ok'); return; }
 
+  // merge visits (keep local + cloud, don't lose either)
+  const localVisits = DB.visits || [];
   DB = data;
+  DB.visits = mergeVisits(localVisits, data.visits || []);
+
   if (!DB.coordinators)           DB.coordinators           = [];
   if (!DB.lists)                  DB.lists                  = {};
   if (!DB.lists.accounts)         DB.lists.accounts         = [];
@@ -1302,7 +1355,6 @@ async function fbPull() {
   if (!DB.lists.accountBranches)  DB.lists.accountBranches  = {};
   if (!DB.lists.accountCodes)     DB.lists.accountCodes     = {};
   if (!DB.lists.branchCodes)      DB.lists.branchCodes      = {};
-  if (!DB.visits)                 DB.visits                 = [];
   if (!DB.products)               DB.products               = [];
   if (!DB.moves)                  DB.moves                  = [];
 
@@ -1310,16 +1362,20 @@ async function fbPull() {
 
   fbSetStatus('ok');
   fbSetLastSync();
-  setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+  setBadge('☁️ تم الجلب من Supabase', 'sync-ok');
   document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
-  toast('✅ تم جلب البيانات — ' + (DB.coordinators.length) + ' منسق · ' + (DB.products.length) + ' منتج');
 
-  // ── 3. refresh UI (errors here won't block) ────
+  // ── 3. refresh UI ─────────────────────────────
   Object.keys(_tabVersion).forEach(k => delete _tabVersion[k]);
   _listsVersion = -1;
   _permsVersion = -1;
   try { buildHome(); } catch(e) {}
   try { buildConfig(); } catch(e) {}
+  // rebuild whichever tab is currently open
+  if (typeof _activeTab !== 'undefined' && _activeTab) {
+    try { switchTab(_activeTab, document.querySelector('.nav-item.active')); } catch(e) {}
+  }
+  toast('✅ تم جلب البيانات — ' + (DB.visits?.length || 0) + ' زيارة · ' + (DB.coordinators?.length || 0) + ' منسق · ' + (DB.products?.length || 0) + ' منتج');
 }
 
 function fbAutoSync() {
@@ -1342,17 +1398,17 @@ function fbAutoSync() {
   }
 }
 
-// check Firebase on load
+// check Supabase on load
 (async function fbInit() {
   fbSetStatus('syncing');
   const urlEl = document.getElementById('fb-url-display');
-  if (urlEl) urlEl.textContent = FB_URL + '.json';
+  if (urlEl) urlEl.textContent = SB_URL;
   try {
-    const res = await fetch(FB_URL + '.json');
+    const res = await fetch(SB_URL + '?id=eq.main&select=id', { headers: SB_HEADERS });
     if (res.ok) {
       fbSetStatus('ok');
       document.getElementById('topbar-sync-btn').style.display = 'inline-flex';
-      setBadge('☁️ Firebase متصل', 'sync-ok');
+      setBadge('☁️ Supabase متصل', 'sync-ok');
     } else throw new Error();
   } catch {
     fbSetStatus('off');
@@ -1590,6 +1646,7 @@ async function doImport() {
     const incoming = rawSheets[vS].map(parseVisit);
     const existingKeys = new Set(DB.visits.map(v => `${v.outlet}|${v.date}`));
     const fresh = incoming.filter(v => !existingKeys.has(`${v.outlet}|${v.date}`));
+    fresh.forEach(v => { if (!v.id) v.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7); });
     DB.visits = [...DB.visits, ...fresh];
     addedVisits = fresh.length;
   }
@@ -1760,10 +1817,13 @@ function buildHome() {
         const visits   = DB.visits.filter(v => v.account === acc).length;
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
           <div>
-            <div style="font-size:13px;font-weight:600">🏬 ${acc} ${DB.lists?.accountCodes?.[acc] ? `<span style="font-size:11px;font-family:monospace;color:var(--txt3)">${DB.lists.accountCodes[acc]}</span>` : ''}</div>
+            <div style="font-size:13px;font-weight:600">🏬 ${acc}</div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
               ${branches.length
-                ? branches.map(b => `<span style="font-size:10px;background:var(--purple-l);color:var(--purple-d);padding:1px 7px;border-radius:99px">${b}</span>`).join('')
+                ? branches.map(b => {
+                    const bc = DB.lists?.branchCodes?.[b] || '';
+                    return `<span style="font-size:10px;background:var(--purple-l);color:var(--purple-d);padding:1px 7px;border-radius:99px">${b}${bc ? ` (${bc})` : ''}</span>`;
+                  }).join('')
                 : '<span style="font-size:11px;color:var(--txt3)">لا توجد فروع مرتبطة</span>'}
             </div>
           </div>
@@ -1954,41 +2014,122 @@ function deleteProduct(idx) {
 
 // ── Stock ──
 function renderStock() {
-  const curr = DB.moves.filter(m => String(m.type || '').includes('حالي'));
-  const mx   = Math.max(...curr.map(m => parseInt(m.qty) || 0), 1);
+  const q      = (document.getElementById('st-search')?.value  || '').toLowerCase();
+  const accF   =  document.getElementById('st-account')?.value || '';
 
-  document.getElementById('stock-current').innerHTML = curr.length
-    ? curr.map(m => {
-        const q   = parseInt(m.qty) || 0;
-        const pct = Math.round(q / mx * 100);
-        const c   = pct > 60 ? 'var(--green)' : pct > 30 ? 'var(--amber)' : 'var(--red)';
-        return `<div style="margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-            <span style="font-weight:600">${m.product}</span>
-            <span style="color:${c};font-weight:600">${q} وحدة</span>
+  // ── populate account filter ──────────────────────────────
+  const accounts = [...new Set(DB.visits.map(v => v.account).filter(Boolean))].sort();
+  const accSel = document.getElementById('st-account');
+  if (accSel) {
+    const cur = accSel.value;
+    accSel.innerHTML = '<option value="">كل الـ Accounts</option>' +
+      accounts.map(a => `<option${a === cur ? ' selected' : ''}>${a}</option>`).join('');
+  }
+
+  // ── aggregate visits → stock map ────────────────────────
+  // key: account|branch|brand|productNameEN  → { units, displayStatus, alarm, lastDate, coordinators }
+  const map = new Map();
+
+  DB.visits.forEach(v => {
+    const visitItems = Array.isArray(v.items) && v.items.length
+      ? v.items
+      : [{ brand: v.brand, productNameEN: v.productNameEN, units: v.units,
+           displayStatus: v.displayStatus, alarm: v.alarm, expiryDate: v.expiryDate }];
+
+    visitItems.forEach(it => {
+      if (!it.productNameEN) return;
+      const key = [v.account, v.branch, it.brand, it.productNameEN].join('||');
+      const existing = map.get(key);
+      if (existing) {
+        existing.units += parseInt(it.units) || 0;
+        if ((v.date || '') > existing.lastDate) {
+          existing.lastDate      = v.date || '';
+          existing.displayStatus = it.displayStatus || existing.displayStatus;
+          existing.alarm         = it.alarm         || existing.alarm;
+        }
+        if (!existing.coordinators.includes(v.coordinator)) existing.coordinators.push(v.coordinator);
+      } else {
+        map.set(key, {
+          account: v.account || '—', branch: v.branch || '—',
+          brand: it.brand || '', product: it.productNameEN,
+          units: parseInt(it.units) || 0,
+          displayStatus: it.displayStatus || '',
+          alarm: it.alarm || '',
+          lastDate: v.date || '',
+          coordinators: v.coordinator ? [v.coordinator] : [],
+        });
+      }
+    });
+  });
+
+  // ── filter ───────────────────────────────────────────────
+  let rows = [...map.values()];
+  if (accF) rows = rows.filter(r => r.account === accF);
+  if (q)    rows = rows.filter(r =>
+    r.branch.toLowerCase().includes(q)  ||
+    r.product.toLowerCase().includes(q) ||
+    r.brand.toLowerCase().includes(q)
+  );
+
+  // ── summary ──────────────────────────────────────────────
+  const totalUnits  = rows.reduce((s, r) => s + r.units, 0);
+  const totalBranch = new Set(rows.map(r => r.account + '||' + r.branch)).size;
+  document.getElementById('stock-summary').textContent =
+    `${totalBranch} فرع · ${rows.length} صنف · ${totalUnits.toLocaleString('ar-EG')} وحدة إجمالي`;
+
+  // ── group by account → branch ────────────────────────────
+  const grouped = {};
+  rows.forEach(r => {
+    if (!grouped[r.account]) grouped[r.account] = {};
+    if (!grouped[r.account][r.branch]) grouped[r.account][r.branch] = [];
+    grouped[r.account][r.branch].push(r);
+  });
+
+  // ── render ───────────────────────────────────────────────
+  const alarmBadge = alarm => {
+    if (!alarm) return '';
+    const cls = alarm === 'منتهي' ? 'r' : alarm === 'قريب الانتهاء' ? 'a' : 'g';
+    return `<span class="badge ${cls}" style="font-size:10px">${alarm}</span>`;
+  };
+
+  const html = Object.entries(grouped).map(([acc, branches]) => `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title" style="font-size:15px;color:var(--purple-d)">🏬 ${acc}</div>
+      ${Object.entries(branches).map(([branch, items]) => `
+        <div style="margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+          <div style="background:var(--purple-l);padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;font-size:13px;color:var(--purple-d)">📍 ${branch}</span>
+            <span style="font-size:11px;color:var(--txt3)">آخر زيارة: ${items.reduce((m,i)=>i.lastDate>m?i.lastDate:m,'')}</span>
           </div>
-          <div class="pbar"><div class="pfill" style="width:${pct}%;background:${c}"></div></div>
-        </div>`;
-      }).join('')
-    : '<p style="color:var(--txt3);font-size:13px">لا توجد بيانات مخزون</p>';
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:var(--bg);font-size:11px;color:var(--txt2)">
+              <th style="padding:6px 10px;text-align:right;font-weight:600">الصنف</th>
+              <th style="padding:6px 10px;text-align:center;font-weight:600">الكمية الإجمالية</th>
+              <th style="padding:6px 10px;text-align:center;font-weight:600">المكان</th>
+              <th style="padding:6px 10px;text-align:center;font-weight:600">الحالة</th>
+              <th style="padding:6px 10px;text-align:right;font-weight:600">المنسقين</th>
+            </tr></thead>
+            <tbody>
+              ${items.map((it, i) => `
+              <tr style="border-top:1px solid var(--border);background:${i%2===0?'var(--surface)':'var(--bg)'}">
+                <td style="padding:8px 10px;font-size:12px">
+                  ${it.brand ? `<span style="font-size:10px;color:var(--txt3)">${it.brand} · </span>` : ''}
+                  <span style="font-weight:600">${it.product}</span>
+                </td>
+                <td style="padding:8px 10px;text-align:center;font-weight:700;font-size:14px;color:var(--purple)">${it.units.toLocaleString('ar-EG')}</td>
+                <td style="padding:8px 10px;text-align:center;font-size:11px;color:var(--txt2)">${it.displayStatus || '—'}</td>
+                <td style="padding:8px 10px;text-align:center">${alarmBadge(it.alarm)}</td>
+                <td style="padding:8px 10px;font-size:11px;color:var(--txt3)">${it.coordinators.join('، ')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 
-  const pages  = Math.max(1, Math.ceil(DB.moves.length / PAGE_SIZE));
-  stockPage    = Math.min(stockPage, pages);
-  const slice  = DB.moves.slice((stockPage - 1) * PAGE_SIZE, stockPage * PAGE_SIZE);
-
-  document.getElementById('stock-moves').innerHTML = slice.length
-    ? slice.map(m => {
-        const q = parseInt(m.qty) || 0;
-        return `<tr>
-          <td title="${m.product}">${m.product}</td>
-          <td><span class="badge ${q < 0 ? 'r' : q > 0 ? 'g' : 'b'}">${q > 0 ? '+' : ''}${q}</span></td>
-          <td>${m.type}</td>
-          <td>${m.date}</td>
-        </tr>`;
-      }).join('')
-    : '<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px">لا توجد بيانات</td></tr>';
-
-  renderPagination('stock-pagination', pages, stockPage, p => { stockPage = p; renderStock(); });
+  document.getElementById('stock-cards').innerHTML = html ||
+    '<div style="text-align:center;padding:40px;color:var(--txt3)">لا توجد بيانات — أنشئ زيارات أولاً</div>';
 }
 
 // ════════════════════════════════════════
@@ -2019,19 +2160,19 @@ function renderLists() {
           <!-- account header -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <span style="font-size:13px;font-weight:700;color:var(--purple-d)">🏬 ${acc}</span>
-            ${DB.lists?.accountCodes?.[acc] ? `<span style="font-size:11px;font-family:monospace;background:var(--bg);padding:2px 8px;border-radius:99px;color:var(--txt2)">${DB.lists.accountCodes[acc]}</span>` : ''}
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red-l);padding:2px 7px;font-size:11px"
               onclick="removeListItem('accounts','${acc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">✕</button>
           </div>
           <!-- linked branches as tags -->
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:24px">
             ${linked.length
-              ? linked.map(b => `
-                <span style="background:var(--purple-l);color:var(--purple-d);padding:3px 10px;border-radius:99px;font-size:11px;display:inline-flex;align-items:center;gap:5px">
-                  ${b}
+              ? linked.map(b => {
+                  const bCode = DB.lists?.branchCodes?.[b] || '';
+                  return `<span style="background:var(--purple-l);color:var(--purple-d);padding:3px 10px;border-radius:99px;font-size:11px;display:inline-flex;align-items:center;gap:5px">
+                  ${b}${bCode ? ` <span style="font-family:monospace;font-size:10px;opacity:.7">(${bCode})</span>` : ''}
                   <span style="cursor:pointer;font-weight:900;font-size:13px;line-height:1"
                     onclick="unlinkBranch('${acc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${b.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">×</span>
-                </span>`).join('')
+                </span>`;}).join('')
               : '<span style="font-size:11px;color:var(--txt3);font-style:italic">لا توجد فروع مرتبطة بعد</span>'}
           </div>
           <!-- link new branch -->
@@ -2531,14 +2672,14 @@ function confirmClearVisits() {
       // invalidate all caches
       Object.keys(_tabVersion).forEach(k => delete _tabVersion[k]);
       _listsVersion = -1;
-      // push to Firebase immediately to overwrite cloud data
+      // push to Supabase immediately to overwrite cloud data
       try {
-        await fetch(FB_URL + '.json', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(DB)
+        await fetch(SB_URL, {
+          method: 'POST',
+          headers: SB_HEADERS,
+          body: JSON.stringify({ id: 'main', data: DB, updated_at: new Date().toISOString() })
         });
-        setBadge('☁️ محفوظ في Firebase', 'sync-ok');
+        setBadge('☁️ محفوظ في Supabase', 'sync-ok');
       } catch(e) {}
       buildConfig();
       toast(`✅ تم مسح ${count} زيارة`);
@@ -2693,7 +2834,25 @@ function openCoordForm(idx = -1) {
 
   document.getElementById('cf-title').textContent = isEdit ? '✏️ تعديل بيانات المنسق' : '➕ إضافة منسق جديد';
   document.getElementById('cf-name').value     = c?.name     || '';
-  document.getElementById('cf-code').value     = c?.code     || '';
+
+  // auto-generate next sequential code for new coordinators
+  if (!isEdit) {
+    let prefix = 'COORD-', digits = 3, maxNum = 0;
+    DB.coordinators.forEach(co => {
+      const m = (co.code || '').match(/^([A-Za-z\-]*)(\d+)$/);
+      if (m) {
+        const n = parseInt(m[2]);
+        if (n > maxNum) {
+          maxNum  = n;
+          prefix  = m[1];
+          digits  = m[2].length;
+        }
+      }
+    });
+    document.getElementById('cf-code').value = prefix + String(maxNum + 1).padStart(digits, '0');
+  } else {
+    document.getElementById('cf-code').value = c?.code || '';
+  }
   document.getElementById('cf-area').value     = c?.area     || '';
   document.getElementById('cf-phone').value    = c?.phone    || '';
   document.getElementById('cf-vendor').value   = c?.vendor   || '';
@@ -3033,7 +3192,7 @@ function addVisitItem(data = {}) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
           <div style="font-size:10px;color:var(--txt2);margin-bottom:3px;font-weight:600">الكمية</div>
-          <input class="form-input" data-field="units" type="number" min="0" placeholder="0" value="${data.units ?? ''}" style="font-size:12px">
+          <input class="form-input" data-field="units" type="number" min="1" placeholder="الكمية *" value="${data.units ?? ''}" style="font-size:12px">
         </div>
         <div>
           <div style="font-size:10px;color:var(--txt2);margin-bottom:3px;font-weight:600">display status</div>
@@ -3321,18 +3480,27 @@ function saveVisit() {
     return;
   }
 
+  const zeroQty = items.find(it => !it.units || it.units <= 0);
+  if (zeroQty) {
+    errEl.textContent = `⚠️ الكمية مطلوبة ولا يمكن أن تكون 0 — (${zeroQty.productNameEN})`;
+    errEl.style.display = 'block';
+    return;
+  }
+
   const header = { coordinator, account, accountNum, branch, vendor, brand, visitDay, date, status, notes, outlet: branch, area: account };
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
   if (_editVisitIdx >= 0) {
     const it = items[0] || {};
-    DB.visits[_editVisitIdx] = { ...header, ...it, items };
+    const existingId = DB.visits[_editVisitIdx]?.id || newId();
+    DB.visits[_editVisitIdx] = { id: existingId, ...header, ...it, items };
     toast('✅ تم تعديل الزيارة');
   } else {
     if (items.length === 0) {
-      DB.visits.push({ ...header, items: [], productNameEN: '', units: 0 });
+      DB.visits.push({ id: newId(), ...header, items: [], productNameEN: '', units: 0 });
     } else {
-      // save one record per visit with all items embedded
-      DB.visits.push({ ...header, items, ...items[0] });
+      DB.visits.push({ id: newId(), ...header, items, ...items[0] });
     }
     toast(`✅ تم حفظ الزيارة (${items.length || 0} صنف)`);
   }
